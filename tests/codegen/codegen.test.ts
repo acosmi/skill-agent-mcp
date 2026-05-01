@@ -1,10 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
 
 import {
   codegen,
   ComposedToolStore,
   ComposedSubsystem,
+  COMPOSED_TOOLS_FILENAME,
   type ExecuteToolFn,
+  loadComposedToolStore,
   lookupPath,
   normalizeApproval,
   normalizeOnError,
@@ -295,5 +300,37 @@ describe("ComposedSubsystem.executeTool", () => {
     );
     expect(result).toContain("Step 1: boom [error]");
     expect(result).toContain("Step 2: ok [done]");
+  });
+});
+
+describe("loadComposedToolStore — schema validation", () => {
+  let tmpRoot: string;
+  beforeAll(async () => {
+    tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "acosmi-codegen-store-"));
+  });
+  afterAll(async () => {
+    await fs.rm(tmpRoot, { recursive: true, force: true });
+  });
+
+  it("rejects payload where `tools` is an array (Object.entries on array would mis-iterate as string keys)", async () => {
+    const dir = await fs.mkdtemp(path.join(tmpRoot, "arr-"));
+    await fs.writeFile(
+      path.join(dir, COMPOSED_TOOLS_FILENAME),
+      JSON.stringify({ version: 1, tools: [], updatedAt: "2026-05-01T00:00:00Z" }),
+    );
+    const result = await loadComposedToolStore(dir);
+    expect(result.error).toBeDefined();
+    expect(result.error?.message ?? "").toContain("invalid store schema");
+    expect(result.store.size()).toBe(0);
+  });
+
+  it("accepts payload where `tools` is a Record object", async () => {
+    const dir = await fs.mkdtemp(path.join(tmpRoot, "obj-"));
+    await fs.writeFile(
+      path.join(dir, COMPOSED_TOOLS_FILENAME),
+      JSON.stringify({ version: 1, tools: {}, updatedAt: "2026-05-01T00:00:00Z" }),
+    );
+    const result = await loadComposedToolStore(dir);
+    expect(result.error).toBeUndefined();
   });
 });

@@ -212,6 +212,7 @@ function isStoreData(v: unknown): v is ComposedToolStoreData {
     typeof obj["version"] === "number" &&
     typeof obj["tools"] === "object" &&
     obj["tools"] !== null &&
+    !Array.isArray(obj["tools"]) &&
     typeof obj["updatedAt"] === "string"
   );
 }
