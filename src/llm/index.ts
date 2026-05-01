@@ -28,6 +28,3 @@ export type { AnthropicConfig } from "./anthropic.ts";
 
 export { OpenAILLMClient } from "./openai.ts";
 export type { OpenAIConfig } from "./openai.ts";
-
-export { OllamaLLMClient } from "./ollama.ts";
-export type { OllamaConfig } from "./ollama.ts";

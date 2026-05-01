@@ -1,7 +1,7 @@
 // LLMClient interface — provider-agnostic LLM contract for the
 // @acosmi/agent framework. Per user decision P-3, the framework does
 // not bind any specific LLM SDK. Adapters in this folder (anthropic /
-// openai / ollama) are reference examples; users plug in their own
+// openai) are reference examples; users plug in their own
 // implementations against this interface.
 
 export type LLMRole = "user" | "assistant" | "system";
@@ -90,7 +90,8 @@ export type LLMStreamChunk =
  * is wired in.
  */
 export interface LLMClient {
-  /** Identifying name (e.g. "anthropic" / "openai" / "ollama" / custom). */
+  /** Identifying name (e.g. "anthropic" / "openai" / custom — OpenAI adapter
+   *  also covers OpenAI-compatible services like Ollama OAI mode, vLLM, DeepSeek). */
   readonly providerId: string;
 
   /** Send a chat request and get the full response. */
