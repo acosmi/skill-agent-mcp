@@ -2,8 +2,8 @@
 //
 // Skill-to-Tool codegen takes SKILL.md `tool_schema.steps[]` and
 // compiles them into a callable composed-tool definition that the
-// executor (commit #13) can run. The store persists compiled tools
-// across MCP server restarts.
+// executor can run. The store persists compiled tools across MCP server
+// restarts.
 
 export type {
   CodegenError,

@@ -1,6 +1,6 @@
 // Public API surface for the @acosmi/agent capability_manage subsystem.
-// commit 9-10: 13 actions covering inspection / validation / diagnosis /
-// prompt generation / sub-agent enumeration / patch-based mutation.
+// 13 actions covering inspection / validation / diagnosis / prompt
+// generation / sub-agent enumeration / patch-based mutation.
 
 export type {
   DiagnoseResult,
@@ -35,7 +35,7 @@ export {
   executeManageTool,
 } from "./manage-tool.ts";
 
-// ── SKILL.md frontmatter (commit 11-12) ──────────────────────────────
+// ── SKILL.md frontmatter ─────────────────────────────────────────────
 export type {
   CrabClawSkillMetadata,
   ParsedSkill,
@@ -53,7 +53,7 @@ export {
   resolveToolNameFromTreeId,
 } from "./skill-frontmatter.ts";
 
-// ── Frontend codegen (commit 14, dogfood) ────────────────────────────
+// ── Frontend codegen (dogfood) ───────────────────────────────────────
 export type { GenFrontendOptions } from "./gen-frontend.ts";
 export {
   generateFrontendConstants,

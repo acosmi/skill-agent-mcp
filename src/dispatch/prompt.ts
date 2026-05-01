@@ -5,8 +5,8 @@
 // there's no tool to call, no sub-agent to spawn, just a markdown
 // payload to inject into the calling LLM's context.
 //
-// We dress it up minimally so the MCP server (commit #17) can register
-// every prompt-mode SKILL as one MCP tool with a uniform handler:
+// We dress it up minimally so the MCP server can register every
+// prompt-mode SKILL as one MCP tool with a uniform handler:
 // the tool returns the SKILL body as `text` content.
 
 import type { ExtendedSkillMetadata } from "../skill/types.ts";

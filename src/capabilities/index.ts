@@ -1,9 +1,6 @@
 // Public API surface for the @acosmi/agent capabilities subsystem.
-// commit 2: types + CapabilityTree class.
-// commit 3: + derivation methods, providers, sub-agent tree registry,
-//   tier helpers.
-// Subsequent commits: singleton (commit 13 — depends on
-//   generateTreeFromRegistry which lands then).
+// Exports types + CapabilityTree class + derivation methods + providers +
+// sub-agent tree registry + tier helpers + default tree singleton.
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -65,7 +62,7 @@ export {
   subAgentTreeFor,
 } from "./subagent-tree.ts";
 
-// ── Default tree singleton + Tree* helpers (commit 13) ──────────────────
+// ── Default tree singleton + Tree* helpers ──────────────────────────────
 
 export type { TreeBuilder } from "./singleton.ts";
 

@@ -5,7 +5,7 @@
 //
 // In Go, providers communicate with the capability tree via interfaces to
 // avoid circular imports between capabilities/ and skills/. Same intent
-// here. The actual SKILL.md parser lives in src/manage/ (commit 11-12).
+// here. The actual SKILL.md parser lives in src/manage/.
 
 import type {
   CapabilityNode,
@@ -71,7 +71,7 @@ let _lastInjectedNodeCount = 0;
 
 /**
  * Number of SKILL.md nodes loaded on the last injectSkillNodes call. Used
- * by the singleton self-check (commit 13) and diagnostics.
+ * by the singleton self-check and diagnostics.
  */
 export function lastInjectedSkillNodeCount(): number {
   return _lastInjectedNodeCount;
@@ -168,7 +168,7 @@ export function injectSkillKeywords(tree: CapabilityTree): void {
  *
  * Note for icons: emoji is stored as-is in node.display.icon. The
  * emojiToIconName conversion (if any) is the responsibility of the
- * frontend code generator (commit 14 gen_frontend), not this layer.
+ * frontend code generator (gen_frontend), not this layer.
  */
 export function mergeNodeData(node: CapabilityNode, data: SkillNodeData): void {
   // Runtime

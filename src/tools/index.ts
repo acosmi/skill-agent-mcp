@@ -1,6 +1,6 @@
 // Public surface for the natural-language SKILL tools.
 //
-// Each tool is registered as one MCP tool by the server (commit #17):
+// Each tool is registered as one MCP tool by the server:
 //   - `skill_suggest`  — recommend a starting template from free-form text
 //   - `skill_generate` — validate-then-save a SKILL.md draft
 //   - `skill_manage`   — list / get / update / delete / export SKILLs

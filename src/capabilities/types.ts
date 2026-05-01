@@ -3,7 +3,7 @@
 //
 // All types here are pure data shapes — behaviour lives on the CapabilityTree
 // class in capability-tree.ts. Splitting types from class avoids circular
-// imports between providers (commit 3) and the tree itself.
+// imports between providers and the tree itself.
 
 // ── Identity ────────────────────────────────────────────────────────────────
 
@@ -196,13 +196,12 @@ export interface SubagentEntry {
 /**
  * SubAgentToolDef describes a single sub-agent tool for LLM injection.
  * Local to capabilities to avoid circular dependencies with the LLM client
- * layer (commit 8). Callers convert to llmclient.ToolDef at the injection
- * site.
+ * layer. Callers convert to llmclient.ToolDef at the injection site.
  */
 export interface SubAgentToolDef {
   name: string;
   description: string;
-  /** JSON Schema (parsed); refined to JSONSchemaObject in commit 5. */
+  /** JSON Schema (parsed). */
   inputSchema: unknown;
 }
 
@@ -261,9 +260,8 @@ export interface SkillNodeData {
 export type CapabilityKind = "tool" | "subagent_entry";
 
 /**
- * A single capability in the registry. The registry IIFE (in registry.ts —
- * commit 6) builds the static spec list. Translated from crabclaw
- * registry.go.
+ * A single capability in the registry. The registry IIFE (in registry.ts)
+ * builds the static spec list. Translated from crabclaw registry.go.
  */
 export interface CapabilitySpec {
   id: string;
@@ -280,8 +278,8 @@ export interface CapabilitySpec {
 
 /**
  * Valid intent tier values in escalating order. The capability-tree's
- * tierIndex(t) (commit 3) returns t's position; -1 if invalid. Exported
- * because intent_router and tests need the canonical order.
+ * tierIndex(t) returns t's position; -1 if invalid. Exported because
+ * intent_router and tests need the canonical order.
  */
 export const VALID_TIERS = [
   "greeting",

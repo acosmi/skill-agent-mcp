@@ -1,10 +1,10 @@
 // CapabilityTree class translated from
 // crabclaw/backend/internal/agents/capabilities/capability_tree.go.
 //
-// commit 2: data structure + basic ops (clone, walk, lookup family).
-// commit 3: derivation methods (D1-D9 pipelines from the Go original) +
-// module-level helpers (tierIndex). Sub-agent registry, providers, and
-// SKILL.md injection live in subagent-tree.ts and providers.ts respectively.
+// Provides data structure + basic ops (clone, walk, lookup family) +
+// derivation methods (D1-D9 pipelines from the Go original) + module-level
+// helpers (tierIndex). Sub-agent registry, providers, and SKILL.md injection
+// live in subagent-tree.ts and providers.ts respectively.
 
 import type {
   CapabilityNode,
@@ -150,7 +150,7 @@ export class CapabilityTree {
    * Returns a deep copy. Every node and every sub-structure is reallocated
    * so mutations on the returned tree cannot leak into the original; slices
    * inside sub-structures are also copied. Primitive used by the RCU write
-   * path (updateDefaultTree, apply_patch, revert_patch — commit 13).
+   * path (updateDefaultTree, apply_patch, revert_patch).
    */
   clone(): CapabilityTree {
     const out = new CapabilityTree();
@@ -524,7 +524,7 @@ export class CapabilityTree {
 
 /**
  * Returns the position of a tier in the escalating order, or -1 if invalid.
- * Exported for use by the intent router (commit 17) and tests.
+ * Exported for use by the intent router and tests.
  */
 export function tierIndex(tier: string): number {
   for (let i = 0; i < VALID_TIERS.length; i++) {

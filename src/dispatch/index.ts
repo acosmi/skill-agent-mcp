@@ -1,7 +1,7 @@
 // Public surface for the dispatch subsystem.
 //
-// The MCP server (commit #17) imports `dispatchSkill` and the typed
-// context interfaces from here, then registers a single MCP tool per
+// The MCP server imports `dispatchSkill` and the typed context
+// interfaces from here, then registers a single MCP tool per
 // SKILL.md. All three modes (prompt / tool / agent) collapse into one
 // uniform tool surface for external clients.
 

@@ -13,8 +13,8 @@
 //      bus, we deliver the task as a directive rather than spawning a
 //      duplicate child.
 //   2. Permission monotone-decay — sub-agent tool whitelist is computed
-//      via `resolveSkillAgentCapabilities` (commit #7), never bypassing
-//      the parent's set.
+//      via `resolveSkillAgentCapabilities`, never bypassing the parent's
+//      set.
 //   3. Contract state machine — DelegationContract walks pending →
 //      active → completed/failed via `transitionStatus` so any
 //      observability layer can subscribe to status changes.
@@ -50,7 +50,7 @@ export interface ResolvedAgentSkill {
   skillBody: string;
 }
 
-/** Looks up SKILLs by name. Hosted by the MCP server (commit #17). */
+/** Looks up SKILLs by name. Hosted by the MCP server. */
 export interface SkillSourceResolver {
   /** Returns undefined if the SKILL is missing or not in agent mode. */
   resolveAgentSkill(skillName: string): ResolvedAgentSkill | undefined;
@@ -175,8 +175,8 @@ export interface SpawnAgentInput {
 }
 
 /**
- * JSON Schema for the `spawn_agent` MCP tool. The MCP server (commit #17)
- * registers this directly with `McpServer.registerTool`.
+ * JSON Schema for the `spawn_agent` MCP tool. The MCP server registers
+ * this directly with `McpServer.registerTool`.
  */
 export const SPAWN_AGENT_INPUT_SCHEMA = {
   type: "object",
@@ -438,8 +438,8 @@ function parentSourceId(parentContract: DelegationContract | undefined): string 
 /**
  * Compose the sub-agent's system prompt from the resolved SKILL:
  * Role / Goal / Backstory + SKILL.md body. SOP / review_gate are NOT
- * appended here — call `buildSOPPromptSection` (commit #7) and
- * concatenate at the call site if you want SOP injection too.
+ * appended here — call `buildSOPPromptSection` and concatenate at the
+ * call site if you want SOP injection too.
  *
  * Translated from crabclaw buildSkillAgentSystemPrompt; field order
  * preserved so existing SKILL.md authors see the same prompt layout.

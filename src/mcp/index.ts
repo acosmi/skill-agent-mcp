@@ -1,7 +1,7 @@
 // Public surface for the MCP server subsystem.
 //
 // `createServer` returns an `McpServer` ready for `await server.connect(transport)`.
-// Transport factories (stdio + Streamable HTTP) land in commit #18.
+// Transport factories (stdio + Streamable HTTP) live in ./transport.ts.
 
 export {
   createServer,

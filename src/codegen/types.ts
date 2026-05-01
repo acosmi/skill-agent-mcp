@@ -51,7 +51,7 @@ export interface ComposedToolDef {
   skillHash: string;
 }
 
-/** Per-step execution outcome (consumed by ComposedExecutor in commit #13). */
+/** Per-step execution outcome (consumed by ComposedExecutor). */
 export interface StepResult {
   action: string;
   output?: unknown;

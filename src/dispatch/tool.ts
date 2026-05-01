@@ -3,7 +3,7 @@
 // `skill_mode=tool` SKILLs declare a `tool_schema` containing a sequence
 // of `steps[]` that compose existing tools (and sometimes other SKILLs)
 // into a single callable. Composition runs through the codegen + executor
-// pipeline (commits #11–#13).
+// pipeline.
 
 import {
   ComposedSubsystem,
@@ -19,7 +19,7 @@ export type ToolModeInput = Record<string, unknown>;
 /** Output shape — `text` is what the MCP server returns as tool content. */
 export interface ToolModeOutput {
   text: string;
-  /** Optional structured payload (commit #13 will surface step results here). */
+  /** Optional structured payload — step results may be surfaced here. */
   data?: unknown;
 }
 
@@ -29,8 +29,8 @@ export interface ToolModeOutput {
  *
  * Why pluggable: the framework deliberately ships zero built-in tools.
  * OSS users register their own (`bash`, `read_file`, custom domain
- * tools, …) and the composed executor (commit #13) walks step.tool
- * names through this registry.
+ * tools, …) and the composed executor walks step.tool names through
+ * this registry.
  */
 export interface ToolCallback {
   (input: Record<string, unknown>, signal?: AbortSignal): Promise<unknown>;
@@ -72,8 +72,8 @@ export interface ToolModeContext {
   registry: ToolCallbackRegistry;
   /**
    * Composed-tool store keyed by the synthesized name `skill_<sanitized>`.
-   * Populated by `codegen()` (commit #12) and persisted via
-   * loadComposedToolStore / saveComposedToolStore (commit #11).
+   * Populated by `codegen()` and persisted via
+   * loadComposedToolStore / saveComposedToolStore.
    */
   composedStore: ComposedToolStore;
 }

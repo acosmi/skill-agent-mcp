@@ -47,7 +47,7 @@ export interface SkillSuggestOutput {
 }
 
 export interface SkillSuggestContext {
-  /** Filesystem root containing the 5 template `.md` files (commit #14). */
+  /** Filesystem root containing the 5 template `.md` files. */
   templatesDir: string;
 }
 

@@ -1,7 +1,7 @@
 // MCP server factory.
 //
-// Wires the per-subsystem dispatchers + tools (commits #2 – #16) into
-// a single `McpServer` instance the host can connect to a transport.
+// Wires the per-subsystem dispatchers + tools into a single `McpServer`
+// instance the host can connect to a transport.
 //
 // Optional dependencies pattern: tools that need a particular host
 // dependency (spawnSubagent for spawn_agent, composedStore for tool-mode
@@ -43,7 +43,7 @@ export interface CreateServerOptions {
   version?: string;
 
   // ── Required dependencies ───────────────────────────────────────
-  /** Capability tree (commit #2). Used by capability_manage + tree query tools. */
+  /** Capability tree. Used by capability_manage + tree query tools. */
   tree: CapabilityTree;
   /** Filesystem root for the SKILL library. */
   skillsDir: string;
@@ -80,8 +80,8 @@ export interface CreateServerOptions {
  * Construct an `McpServer` with every applicable tool registered.
  *
  * Returns the server unstarted — call `await server.connect(transport)`
- * with a stdio or Streamable HTTP transport (commit #18 ships ready-to-use
- * transport factories).
+ * with a stdio or Streamable HTTP transport (factories ship in
+ * ./transport.ts).
  */
 export function createServer(options: CreateServerOptions): McpServer {
   const server = new McpServer({
