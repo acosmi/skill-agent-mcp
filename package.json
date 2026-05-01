@@ -1,6 +1,6 @@
 {
   "name": "@acosmi/skill-agent-mcp",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "MCP server exposing skill-driven agent capabilities — SKILL.md as the unified fusion layer for tools, prompt fragments, and sub-agents.",
   "license": "Apache-2.0",
   "author": "fushihua <fgfncc@gmail.com>",
