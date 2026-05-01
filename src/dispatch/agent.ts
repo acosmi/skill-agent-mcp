@@ -284,6 +284,15 @@ export async function executeSkillDrivenSpawn(
     constraints.escalationChain = [...cfg.escalationChain];
   }
 
+  // Resolve timeout BEFORE contract construction so contract.timeoutMs
+  // matches the value the spawn caller actually uses (pre-fix the contract
+  // always carried the default 60_000 while spawn used input.timeoutMs —
+  // formatForSystemPrompt then exposed an inconsistent value to sub-agents).
+  let timeoutMs = 60_000;
+  if (input.timeoutMs !== undefined && input.timeoutMs > 0) {
+    timeoutMs = input.timeoutMs;
+  }
+
   // Build contract
   let contract: DelegationContract;
   try {
@@ -294,6 +303,7 @@ export async function executeSkillDrivenSpawn(
       constraints,
       issuedBy: context.parentSessionId,
       sourceRef,
+      timeoutMs,
     });
   } catch (err) {
     return `[spawn_agent] Failed to create contract: ${errMsg(err)}`;
@@ -308,11 +318,6 @@ export async function executeSkillDrivenSpawn(
   }
 
   const systemPrompt = buildSkillAgentSystemPrompt(skill);
-
-  let timeoutMs = 60_000;
-  if (input.timeoutMs !== undefined && input.timeoutMs > 0) {
-    timeoutMs = input.timeoutMs;
-  }
 
   context.logger?.info("spawn_agent: launching skill agent", {
     skillName: input.skillName,
