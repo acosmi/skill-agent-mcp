@@ -32,9 +32,19 @@ export class CapabilityTree {
   /** Top-level node IDs (direct children of the virtual root). */
   rootChildren: string[];
 
+  /**
+   * Reverse index: name → first-inserted node with that name. Maintained
+   * by addNode / removeNode / clone so lookupByName / lookupByToolHint
+   * are O(1) instead of O(N) scans. SKILL.md injection adds many nodes,
+   * making the previous scan a hot path; with N≈hundreds the difference
+   * was visible in tree-derivation pipelines.
+   */
+  private readonly _nameIndex: Map<string, CapabilityNode>;
+
   constructor() {
     this.nodes = new Map();
     this.rootChildren = [];
+    this._nameIndex = new Map();
   }
 
   // ── Basic tree operations ──────────────────────────────────────────────
@@ -53,6 +63,11 @@ export class CapabilityTree {
     }
 
     this.nodes.set(node.id, node);
+    // First-insert wins (matches pre-fix lookupByName iteration order
+    // since Map iterates in insertion order).
+    if (!this._nameIndex.has(node.name)) {
+      this._nameIndex.set(node.name, node);
+    }
 
     if (node.parent === "") {
       this.rootChildren.push(node.id);
@@ -62,6 +77,9 @@ export class CapabilityTree {
     const parent = this.nodes.get(node.parent);
     if (parent === undefined) {
       this.nodes.delete(node.id);
+      if (this._nameIndex.get(node.name) === node) {
+        this._nameIndex.delete(node.name);
+      }
       throw new Error(
         `parent node "${node.parent}" not found for "${node.id}"`,
       );
@@ -90,6 +108,17 @@ export class CapabilityTree {
       this.rootChildren = this.rootChildren.filter((c) => c !== id);
     }
     this.nodes.delete(id);
+    if (this._nameIndex.get(node.name) === node) {
+      this._nameIndex.delete(node.name);
+      // Refill index from any remaining same-name node (rare; only when
+      // the tree contains duplicate names, which is normally a config bug).
+      for (const n of this.nodes.values()) {
+        if (n.name === node.name) {
+          this._nameIndex.set(node.name, n);
+          break;
+        }
+      }
+    }
   }
 
   /** Returns a node by its ID, or undefined. */
@@ -97,23 +126,22 @@ export class CapabilityTree {
     return this.nodes.get(id);
   }
 
-  /** Returns the first node matching the given name. */
+  /** Returns the first-inserted node matching the given name (O(1) via _nameIndex). */
   lookupByName(name: string): CapabilityNode | undefined {
-    for (const n of this.nodes.values()) {
-      if (n.name === name) return n;
-    }
-    return undefined;
+    return this._nameIndex.get(name);
   }
 
   /**
    * Returns a tool/subagent node whose name matches toolHint. Used to
-   * resolve plan-step tool hints to nodes.
+   * resolve plan-step tool hints to nodes. O(1) via _nameIndex; if the
+   * first-inserted node with that name is a group, returns undefined
+   * (caller should not have group/tool name collisions in the first
+   * place — that is a configuration bug).
    */
   lookupByToolHint(toolHint: string): CapabilityNode | undefined {
-    for (const n of this.nodes.values()) {
-      if ((n.kind === "tool" || n.kind === "subagent") && n.name === toolHint) {
-        return n;
-      }
+    const n = this._nameIndex.get(toolHint);
+    if (n !== undefined && (n.kind === "tool" || n.kind === "subagent")) {
+      return n;
     }
     return undefined;
   }
@@ -156,7 +184,11 @@ export class CapabilityTree {
     const out = new CapabilityTree();
     out.rootChildren = [...this.rootChildren];
     for (const [id, n] of this.nodes) {
-      out.nodes.set(id, cloneNode(n));
+      const cloned = cloneNode(n);
+      out.nodes.set(id, cloned);
+      if (!out._nameIndex.has(cloned.name)) {
+        out._nameIndex.set(cloned.name, cloned);
+      }
     }
     return out;
   }

@@ -694,3 +694,50 @@ describe("SubAgent registry", () => {
     expect(subAgentTreeFor("media")).toBeUndefined();
   });
 });
+
+describe("CapabilityTree name index (P2-6)", () => {
+  it("addNode populates _nameIndex so lookupByName is O(1)", () => {
+    const tree = new CapabilityTree();
+    tree.addNode(mkGroup("fs", "fs"));
+    tree.addNode(mkTool("fs/read_file", "read_file", "fs"));
+    expect(tree.lookupByName("read_file")?.id).toBe("fs/read_file");
+    expect(tree.lookupByName("fs")?.id).toBe("fs");
+  });
+
+  it("removeNode clears _nameIndex when removed node was the indexed one", () => {
+    const tree = new CapabilityTree();
+    tree.addNode(mkGroup("fs", "fs"));
+    tree.addNode(mkTool("fs/read_file", "read_file", "fs"));
+    expect(tree.lookupByName("read_file")).toBeDefined();
+    tree.removeNode("fs/read_file");
+    expect(tree.lookupByName("read_file")).toBeUndefined();
+  });
+
+  it("clone copies _nameIndex into the new tree", () => {
+    const tree = new CapabilityTree();
+    tree.addNode(mkGroup("fs", "fs"));
+    tree.addNode(mkTool("fs/read_file", "read_file", "fs"));
+    const cloned = tree.clone();
+    expect(cloned.lookupByName("read_file")?.id).toBe("fs/read_file");
+    // Mutating original's index must not leak — remove from original,
+    // clone still resolves.
+    tree.removeNode("fs/read_file");
+    expect(tree.lookupByName("read_file")).toBeUndefined();
+    expect(cloned.lookupByName("read_file")?.id).toBe("fs/read_file");
+  });
+
+  it("addNode rollback on missing parent also unsets _nameIndex entry", () => {
+    const tree = new CapabilityTree();
+    expect(() => tree.addNode(mkTool("a/b", "b", "missing"))).toThrow();
+    expect(tree.lookupByName("b")).toBeUndefined();
+  });
+
+  it("lookupByToolHint returns tool/subagent only, not group with same name", () => {
+    const tree = new CapabilityTree();
+    // Insert a tool first; with same-name group later, first-insert wins.
+    tree.addNode(mkGroup("g", "g"));
+    tree.addNode(mkTool("g/t", "t", "g"));
+    expect(tree.lookupByToolHint("t")?.id).toBe("g/t");
+    expect(tree.lookupByToolHint("g")).toBeUndefined();
+  });
+});

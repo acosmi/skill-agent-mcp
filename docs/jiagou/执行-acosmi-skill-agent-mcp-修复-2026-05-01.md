@@ -405,7 +405,7 @@
 - [x] commit 8：P2-3 isStoreData 防 array — commit 1690e67
 - [x] commit 9：P2-4 loop_over 非数组报错 — commit ff65940
 - [x] commit 10：P2-5 retry/abort 格式统一 — commit f736d18
-- [ ] commit 11：P2-2 nowNano hrtime
+- [x] commit 11：P2-2 nowNano hrtime — commit c8b63ae
 - [ ] commit 12：P2-6 反向索引
 - [ ] commit 13：P0-1 顶层 re-export + 测试
 - [ ] commit 14：P1-1 contract.timeoutMs + 测试
