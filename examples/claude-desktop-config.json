@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "acosmi-skill-agent": {
+      "command": "bun",
+      "args": [
+        "run",
+        "/absolute/path/to/acosmi-skill-agent-mcp/bin/acosmi-skill-agent-mcp",
+        "--transport",
+        "stdio",
+        "--skills-dir",
+        "/absolute/path/to/your/skills"
+      ],
+      "env": {
+        "ANTHROPIC_API_KEY": "<set this if any of your SKILLs need it>"
+      }
+    }
+  }
+}

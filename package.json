@@ -16,6 +16,38 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./capabilities": {
+      "types": "./src/capabilities/index.ts",
+      "import": "./src/capabilities/index.ts"
+    },
+    "./codegen": {
+      "types": "./src/codegen/index.ts",
+      "import": "./src/codegen/index.ts"
+    },
+    "./dispatch": {
+      "types": "./src/dispatch/index.ts",
+      "import": "./src/dispatch/index.ts"
+    },
+    "./llm": {
+      "types": "./src/llm/index.ts",
+      "import": "./src/llm/index.ts"
+    },
+    "./manage": {
+      "types": "./src/manage/index.ts",
+      "import": "./src/manage/index.ts"
+    },
+    "./mcp": {
+      "types": "./src/mcp/index.ts",
+      "import": "./src/mcp/index.ts"
+    },
+    "./skill": {
+      "types": "./src/skill/index.ts",
+      "import": "./src/skill/index.ts"
+    },
+    "./tools": {
+      "types": "./src/tools/index.ts",
+      "import": "./src/tools/index.ts"
     }
   },
   "files": [
