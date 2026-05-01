@@ -410,7 +410,7 @@
 - [x] commit 13：P0-1 顶层 re-export + 测试 — commit 689c7e4
 - [x] commit 14：P1-1 contract.timeoutMs + 测试 — commit ca63078
 - [x] commit 15：P1-2 注入 contract + 测试更新 — commit f455e80
-- [ ] commit 16：P0-3 双 bin
+- [x] commit 16：P0-3 双 bin — commit dbdb33a
 - [ ] commit 17：P0-2 HTTP listener + express dep + 测试
 - [ ] commit 18：docs 复核纠错 + 双兼容架构反映
 

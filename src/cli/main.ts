@@ -14,7 +14,11 @@ import { fileURLToPath } from "node:url";
 
 import { CapabilityTree, setTreeBuilder } from "../capabilities/index.ts";
 import { ComposedToolStore, loadComposedToolStore } from "../codegen/index.ts";
-import { createServer, createStdioTransport, createStreamableHttpTransport } from "./../mcp/index.ts";
+import {
+  createServer,
+  createStdioTransport,
+  startStreamableHttpServer,
+} from "./../mcp/index.ts";
 import { type TransportMode } from "../mcp/transport.ts";
 
 interface Args {
@@ -141,27 +145,38 @@ async function main(): Promise<void> {
 
   const composedStore = await loadStore(args.stateDir);
 
-  const server = createServer({
-    tree,
-    skillsDir: args.skillsDir,
-    templatesDir,
-    stateDir: args.stateDir,
-    composedStore,
-    ...(args.workspaceRoot !== undefined && { workspaceRoot: args.workspaceRoot }),
-  });
+  // Shared deps between sessions; createServer is cheap (zod schema parse +
+  // tool register), so we re-run it per session via the factory.
+  const buildServer = () =>
+    createServer({
+      tree,
+      skillsDir: args.skillsDir,
+      templatesDir,
+      stateDir: args.stateDir,
+      composedStore,
+      ...(args.workspaceRoot !== undefined && { workspaceRoot: args.workspaceRoot }),
+    });
 
   if (args.transport === "http") {
-    const { transport, host, port } = createStreamableHttpTransport({
+    const started = await startStreamableHttpServer({
+      serverFactory: buildServer,
       ...(args.port !== undefined && { port: args.port }),
       ...(args.host !== undefined && { host: args.host }),
     });
-    await server.connect(transport);
     // eslint-disable-next-line no-console
-    console.log(`[acosmi-skill-agent-mcp] streamable HTTP transport ready at http://${host}:${port}/mcp`);
+    console.log(`[acosmi-skill-agent-mcp] streamable HTTP listening at ${started.url}`);
+    const shutdown = async (sig: string) => {
+      // eslint-disable-next-line no-console
+      console.log(`[acosmi-skill-agent-mcp] ${sig} received — closing HTTP server`);
+      await started.close();
+      process.exit(0);
+    };
+    process.on("SIGINT", () => void shutdown("SIGINT"));
+    process.on("SIGTERM", () => void shutdown("SIGTERM"));
     return;
   }
 
-  await server.connect(createStdioTransport());
+  await buildServer().connect(createStdioTransport());
   // stdio transport keeps the process alive via stdin; no log line because
   // it would corrupt the JSON-RPC stream on stdout.
 }

@@ -13,6 +13,9 @@ export { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 export {
   createStdioTransport,
   createStreamableHttpTransport,
+  startStreamableHttpServer,
   type CreateStreamableHttpOptions,
+  type StartStreamableHttpServerOptions,
+  type StartedHttpServer,
   type TransportMode,
 } from "./transport.ts";
