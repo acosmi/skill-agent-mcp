@@ -44,7 +44,9 @@ export interface LLMToolDef {
 }
 
 export interface LLMRequest {
-  model?: string;
+  /** Required — caller must specify which model to invoke. The framework
+   *  is provider-agnostic and intentionally does not ship default model IDs. */
+  model: string;
   messages: LLMMessage[];
   tools?: LLMToolDef[];
   /** System prompt as a separate top-level field (Anthropic-style). */

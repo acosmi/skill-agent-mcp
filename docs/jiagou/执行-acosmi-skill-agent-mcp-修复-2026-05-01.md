@@ -396,7 +396,7 @@
 每完成一项立即 Edit 本文件把 `[ ]` → `[x]` + 追加 `commit <sha>`：
 
 - [x] commit 1：P3-1 注释清理（实测 15 文件 36 处；执行文档原"12 文件 33 处"低估；src/index.ts 11 处保留给 commit #13 重写） — commit b9ae49d
-- [ ] commit 2：A-1+A-2 删 Ollama
+- [x] commit 2：A-1+A-2 删 Ollama — commit ca102bd
 - [ ] commit 3：B-1 LLMRequest.model 必填
 - [ ] commit 4：B-2 删 anthropic DEFAULT_MODEL
 - [ ] commit 5：B-3 删 openai DEFAULT_OPENAI_MODEL
