@@ -9,3 +9,10 @@ export {
 } from "./server.ts";
 
 export { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+export {
+  createStdioTransport,
+  createStreamableHttpTransport,
+  type CreateStreamableHttpOptions,
+  type TransportMode,
+} from "./transport.ts";
