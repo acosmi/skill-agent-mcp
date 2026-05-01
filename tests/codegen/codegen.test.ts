@@ -9,6 +9,7 @@ import {
   ComposedSubsystem,
   COMPOSED_TOOLS_FILENAME,
   type ExecuteToolFn,
+  formatComposedResult,
   loadComposedToolStore,
   lookupPath,
   normalizeApproval,
@@ -418,5 +419,45 @@ describe("loadComposedToolStore — schema validation", () => {
     );
     const result = await loadComposedToolStore(dir);
     expect(result.error).toBeUndefined();
+  });
+});
+
+describe("formatComposedResult — secret redaction integration", () => {
+  it("redacts a Bearer header that leaked into a step output", () => {
+    // Simulate an upstream API echoing the Authorization header in
+    // the response body — this is what we want to scrub before the
+    // markdown reaches the MCP client.
+    const out = formatComposedResult(
+      "demo",
+      [
+        {
+          action: "call_api",
+          output:
+            "request rejected. headers: Authorization: Bearer sk-very-long-leaked-token-1234567890",
+        },
+      ],
+      "",
+    );
+    expect(out).toContain("Authorization: Bearer ***");
+    expect(out).not.toContain("sk-very-long-leaked-token");
+  });
+
+  it("leaves non-secret outputs untouched", () => {
+    const out = formatComposedResult(
+      "demo",
+      [{ action: "calc", output: "result: 42" }],
+      "",
+    );
+    expect(out).toContain("result: 42");
+  });
+
+  it("redacts bare ghp_ token in an error message", () => {
+    const out = formatComposedResult(
+      "demo",
+      [{ action: "x", error: "auth failed for ghp_abcdefghijklmnopqrst" }],
+      "",
+    );
+    expect(out).toContain("***");
+    expect(out).not.toContain("ghp_abcd");
   });
 });

@@ -5,6 +5,67 @@ All notable changes to `@acosmi/skill-agent-mcp` are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added — secret-profile subsystem (v1.2.0 prep)
+
+新增 `src/secrets/` 子系统，让 SKILL 可以引用上游 API 密钥但 **密钥本身永不进入 SKILL 文件 / varMap / 框架内存生命周期**。设计与执行档：
+- `docs/jiagou/架构-acosmi-skill-agent-mcp-secrets-v1.md`
+- `docs/jiagou/执行-acosmi-skill-agent-mcp-secrets-v1.md`
+- `docs/jiagou/审计-acosmi-skill-agent-mcp-secrets-v1.md`
+
+**新增 8 个文件**：
+- `src/secrets/types.ts` — `SecretProvider` / `SecretSourceAdapter` / `SecretProfile` / `ResolvedAuth` / `SecretError`
+- `src/secrets/store.ts` — `SecretProfileStore` + `loadSecretProfileStore` / `saveSecretProfileStore`（仿 codegen/store.ts 的 0o600 atomic-write 范式）
+- `src/secrets/sources/env.ts` — `EnvSecretSource`（读 process.env）
+- `src/secrets/sources/file.ts` — `FileSecretSource`（含 stat.mode 校验，POSIX 拒 group/other readable）
+- `src/secrets/sources/index.ts` — `defaultSourceAdapters()` 工厂
+- `src/secrets/provider.ts` — `DefaultSecretProvider`（store + adapter map 粘合层）
+- `src/secrets/redact.ts` — `redactSecrets` / `findLiteralSecret` / `containsLikelySecret`
+- `src/secrets/index.ts` — barrel
+- `src/manage/secret-profile-manage.ts` — `executeSecretProfileManage` 5 actions: register / list / get / remove / test（永不接收 / 返回 raw key）
+
+**SKILL frontmatter 扩展**：
+- `secret_refs?: string[]` 字段，声明 SKILL 会用哪些 profile name
+- `validateSkillMode(meta, opts?)` 新签名 — 可选 `{ source, secretProvider }`：
+  - **T1**：`source` 提供时扫描字面密钥（`sk-` / `ghp_` / Bearer / AWS AKIA / Slack xoxb 等），命中 → `code: "literal_secret_rejected"`
+  - **T2**：`secretProvider` 提供时校验每个 `secret_refs` 都是已注册 profile，缺失 → `code: "missing_secret_profile"`
+
+**MCP server 扩展**：
+- `CreateServerOptions.secretProvider?` / `secretProfileStore?` / `allowLiteralSecretSource?`
+- 当 `secretProvider + secretProfileStore` 都注入时，`createServer` 自动注册 `secret_profile_manage` MCP tool
+
+**executor 输出脱敏**：
+- `formatComposedResult` 末尾经 `redactSecrets` 过滤 — 上游 API 错误体若回显 Authorization header / token 字面，到达 MCP 客户端前替换为 `***`
+
+**package.json**：
+- 新增 `./secrets` exports 子路径
+
+**测试增量**：
+- `tests/secrets/{store,sources,provider,redact}.test.ts`
+- `tests/manage/secret-profile-manage.test.ts`
+- `tests/skill/skill.test.ts` 扩展 6 个 secret-profile 用例
+- `tests/codegen/codegen.test.ts` 扩展 3 个 redact 集成用例
+- 总计：234 pass / 2 skip / 0 fail / 470 expect() across 15 files
+
+**零新依赖**：本子系统不引入任何 npm 新依赖（仅用 `node:fs/promises` + `process.env` + 现有 `zod`）。
+
+**向后兼容**：
+- 既有 `validateSkillMode(meta)` 单参签名仍可用
+- 既有 host 不传 `secretProvider` 时行为完全不变
+- 新 stateDir 文件 `secret_profiles.json` 不存在时正常启动（emit empty store）
+
+### Fixed — 复核审计 P11 修复
+
+P1-P10 实施完成后由独立 code-reviewer 子代理复核，发现并修复 3 个阻断项：
+
+- **修-1**：`src/secrets/sources/file.ts` POSIX 上 `fs.stat` follows symlink，符号链接本身权限未校验 → 改为 `lstat + stat` 双层 mode 校验。链接条目和链接目标都必须 `mode & 0o077 === 0`。
+- **修-2**：`src/secrets/provider.ts` `parseSourceUri` 抛 `invalid_source_uri` 时错误信息含完整 URI 字面 → 改为 `length=N` 形式不 dump 内容（防 host 误填字面密钥进 `source` 字段时回显泄露）。
+- **修-3**：`tests/skill/skill.test.ts` 加 R1 lock-in 测试，明示 `validateSkillMode` 单参签名默认不跑 T1/T2 是有意决定，将来意外开启会先 fail。
+
+**测试增量**：+5 用例（symlink 接受 / symlink 拒绝 / parseSourceUri 不漏字面 / R1 lock-in T1 / R1 lock-in T2）。
+**最终基准**：234 → **239 pass / 2 skip / 0 fail / 474 expect() across 15 files**。
+
 ## [1.1.0] - 2026-05-01
 
 T3 全链路审计 (2026-05-01) 发现的 3 P0 + 3 P1 + 6 P2 + 1 P3 + 1 架构纠正

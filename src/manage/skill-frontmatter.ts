@@ -116,6 +116,17 @@ export interface CrabClawSkillMetadata {
   relatedTools?: string[];
   sceneHint?: string;
 
+  /**
+   * Names of secret-profiles this SKILL is allowed to reference at
+   * runtime. Profile values themselves are NEVER stored in SKILL.md —
+   * only the profile names. Resolution happens via the host-supplied
+   * SecretProvider (see src/secrets/).
+   *
+   * validateSkillMode checks every entry exists in the registry when
+   * a SecretProvider is wired up.
+   */
+  secretRefs?: string[];
+
   fileAccess?: string;
   scopeCheck?: string;
   excludeFrom?: string[];
@@ -318,6 +329,15 @@ export function resolveCrabClawMetadata(
   }
   if (typeof metadataObj["scene_hint"] === "string" && metadataObj["scene_hint"] !== "") {
     meta.sceneHint = metadataObj["scene_hint"];
+  }
+
+  // secret_refs — read from BOTH the manifest section and the top-level
+  // frontmatter (top-level wins) so authors can put it where it feels
+  // natural alongside other frontmatter fields.
+  const secretRefs =
+    stringArray(fm["secret_refs"]) ?? stringArray(metadataObj["secret_refs"]);
+  if (secretRefs !== undefined && secretRefs.length > 0) {
+    meta.secretRefs = secretRefs;
   }
 
   // permission/policy/display fields

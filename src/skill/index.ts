@@ -26,6 +26,7 @@ export {
 export {
   normalizeSkillMode,
   resolvedSkillMode,
+  type ValidateSkillModeOptions,
   validateSkillMode,
 } from "./validate.ts";
 

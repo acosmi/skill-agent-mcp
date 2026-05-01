@@ -15,6 +15,7 @@ export * from "./capabilities/index.ts";
 export * from "./codegen/index.ts";
 export * from "./dispatch/index.ts";
 export * from "./llm/index.ts";
+export * from "./secrets/index.ts";
 export * from "./skill/index.ts";
 export * from "./mcp/index.ts";
 export * from "./tools/index.ts";
@@ -26,6 +27,7 @@ export {
   capabilityManageToolDef,
   clearPatchStoreForTesting,
   executeManageTool,
+  executeSecretProfileManage,
   exportPatches,
   findDependentAppliedPatches,
   findLatestAppliedPatchByPath,
@@ -40,8 +42,11 @@ export {
   replayAppliedPatches,
   resolveCrabClawMetadata,
   resolveToolNameFromTreeId,
+  secretProfileManageToolDef,
   storePatch,
 } from "./manage/index.ts";
+
+export type { SecretProfileManageContext } from "./manage/index.ts";
 
 export type {
   CrabClawSkillMetadata,

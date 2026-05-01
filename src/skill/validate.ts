@@ -5,7 +5,18 @@
 // errors; we return structured `SkillModeValidationError` so MCP tool
 // handlers can present a uniform error envelope without parsing message
 // strings.
+//
+// v1.2.0 additions:
+//   - T1 literal-secret scan: when ValidateSkillModeOptions.source is
+//     supplied, refuses SKILL.md content that contains recognisable
+//     token shapes (sk-... / ghp_... / Bearer ... / etc.).
+//   - T2 secret_refs existence: when ValidateSkillModeOptions
+//     .secretProvider is supplied, verifies every secret_refs entry is
+//     a registered profile.
+//   Both checks are opt-in via options — single-arg callers continue
+//   to work unchanged.
 
+import { findLiteralSecret } from "../secrets/redact.ts";
 import type {
   BaseCrabClawSkillMetadata,
   ExtendedSkillMetadata,
@@ -29,16 +40,69 @@ export function resolvedSkillMode(
 }
 
 /**
+ * Optional sub-checks for `validateSkillMode`. All fields are optional
+ * — the original single-arg signature still works unchanged.
+ */
+export interface ValidateSkillModeOptions {
+  /**
+   * Original SKILL.md source string (frontmatter + body). When provided,
+   * runs T1 literal-secret scan. Omit to skip this check (e.g. when
+   * validating an in-memory metadata object you constructed yourself).
+   */
+  source?: string;
+  /**
+   * Hook for verifying every entry in `meta.secretRefs` resolves to a
+   * registered profile. Pass the host's SecretProvider to enable T2.
+   * Typed as a structural minimum so test doubles don't need to depend
+   * on the full SecretProvider interface.
+   */
+  secretProvider?: { hasProfile(name: string): boolean };
+}
+
+/**
  * Validate the agent_config / tool_schema mutual-exclusion rules. Returns
  * `null` on success and a structured error otherwise.
  *
  * The function is pure — it does not mutate the input. Default values
  * for `runtime_kind` are applied separately by `normalizeSkillMode`.
+ *
+ * Optional T1/T2 secret-profile checks are gated on `opts` — see
+ * `ValidateSkillModeOptions` for how to enable each.
  */
 export function validateSkillMode(
   meta: ExtendedSkillMetadata | BaseCrabClawSkillMetadata,
+  opts?: ValidateSkillModeOptions,
 ): SkillModeValidationError | null {
   const mode = resolvedSkillMode(meta);
+
+  // T1 — literal-secret scan (run BEFORE structural checks so a SKILL
+  // that's malformed AND leaks a token still reports the leak; a leak
+  // is the more pressing problem).
+  if (opts?.source) {
+    const hit = findLiteralSecret(opts.source);
+    if (hit) {
+      return {
+        code: "literal_secret_rejected",
+        message: `SKILL source contains what looks like a literal secret (${hit.label}). Move the value to a secret profile and reference it via secret_refs.`,
+        resolvedMode: mode,
+      };
+    }
+  }
+
+  // T2 — secret_refs existence check (only when a provider is supplied).
+  if (opts?.secretProvider && meta.secretRefs && meta.secretRefs.length > 0) {
+    for (let i = 0; i < meta.secretRefs.length; i++) {
+      const ref = meta.secretRefs[i]!;
+      if (!opts.secretProvider.hasProfile(ref)) {
+        return {
+          code: "missing_secret_profile",
+          message: `secret_refs[${i}] = ${JSON.stringify(ref)} is not a registered secret profile`,
+          resolvedMode: mode,
+          field: `secret_refs[${i}]`,
+        };
+      }
+    }
+  }
 
   switch (mode) {
     case "agent": {

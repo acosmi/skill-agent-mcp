@@ -13,7 +13,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { CapabilityTree } from "../capabilities/index.ts";
-import { executeManageTool } from "../manage/index.ts";
+import {
+  executeManageTool,
+  executeSecretProfileManage,
+  type SecretProfileManageContext,
+} from "../manage/index.ts";
 import {
   type ComposedToolStore,
   type ExecuteToolFn,
@@ -26,6 +30,10 @@ import {
   type SpawnSubagent,
   type ToolCallbackRegistry,
 } from "../dispatch/index.ts";
+import type {
+  SecretProfileStore,
+  SecretProvider,
+} from "../secrets/index.ts";
 import {
   executeSkillActivate,
   executeSkillGenerate,
@@ -72,6 +80,27 @@ export interface CreateServerOptions {
    * against directory traversal in client-supplied tree_id / skill_dir).
    */
   workspaceRoot?: string;
+
+  // ── Secret-profile subsystem (v1.2.0+, all optional) ────────────
+  /**
+   * SecretProvider — resolves profile name → ResolvedAuth at runtime.
+   * Required for the optional `secret_profile_manage` MCP tool to
+   * register. Tool implementations (http_request etc.) accept the
+   * provider directly via their own wiring; this option only controls
+   * the MCP-exposed manage surface.
+   */
+  secretProvider?: SecretProvider;
+  /**
+   * Mutable backing store the manage tool persists. MUST point to the
+   * same store the SecretProvider reads from.
+   */
+  secretProfileStore?: SecretProfileStore;
+  /**
+   * When true, the manage tool's `register` action accepts
+   * `source="literal:<value>"`. Off by default — set deliberately for
+   * local demos only.
+   */
+  allowLiteralSecretSource?: boolean;
 }
 
 // ── Server factory ─────────────────────────────────────────────────
@@ -97,6 +126,7 @@ export function createServer(options: CreateServerOptions): McpServer {
   registerSkillActivate(server, options);
   registerSkillParse(server);
   registerSpawnAgent(server, options);
+  registerSecretProfileManage(server, options);
 
   return server;
 }
@@ -494,6 +524,46 @@ function registerSpawnAgent(
         },
         ctx,
       );
+      return { content: [{ type: "text", text }] };
+    },
+  );
+}
+
+// ── secret_profile_manage (v1.2.0+) ─────────────────────────────────
+
+function registerSecretProfileManage(
+  server: McpServer,
+  options: CreateServerOptions,
+): void {
+  // Both must be supplied — without the store there's nowhere to
+  // persist register/remove mutations, and without the provider there
+  // is no way to handle the `test` action.
+  if (!options.secretProvider || !options.secretProfileStore) return;
+
+  const ctx: SecretProfileManageContext = {
+    provider: options.secretProvider,
+    store: options.secretProfileStore,
+    stateDir: options.stateDir,
+    ...(options.allowLiteralSecretSource === true && {
+      allowLiteralSource: true,
+    }),
+  };
+
+  server.registerTool(
+    "secret_profile_manage",
+    {
+      description:
+        "Manage secret-profile metadata (register / list / get / remove / test). Profiles describe WHERE a secret lives (env var name / file path), never the secret value itself. Pass the action + per-action fields as a single JSON object via the `payload` field.",
+      inputSchema: {
+        payload: z
+          .string()
+          .describe(
+            "JSON-encoded action payload (action + name + type + source + ...).",
+          ),
+      },
+    },
+    async ({ payload }) => {
+      const text = await executeSecretProfileManage(payload, ctx);
       return { content: [{ type: "text", text }] };
     },
   );

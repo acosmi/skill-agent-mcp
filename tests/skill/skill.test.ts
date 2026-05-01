@@ -156,6 +156,101 @@ describe("validateSkillMode", () => {
   });
 });
 
+describe("validateSkillMode — secret-profile checks (T1 / T2)", () => {
+  // Constructed via concatenation so this very source file does NOT
+  // trigger the literal-secret-rejected pattern when it's loaded.
+  const LEAKY_SKILL = `---
+tree_id: tools/x/leaky
+tools: [leaky]
+summary: contains a literal secret
+skill_mode: prompt
+api_token: ${"sk-" + "abcdefghijklmnopqrstuv"}
+---
+
+Body.
+`;
+
+  const REFS_SKILL = `---
+tree_id: tools/openai/chat
+tools: [openai_chat]
+summary: openai chat with profile ref
+skill_mode: prompt
+secret_refs:
+  - openai_default
+  - github_pat
+---
+
+Body.
+`;
+
+  it("T1: rejects SKILL with sk- literal in source", () => {
+    const parsed = parseExtendedSkillFrontmatter(LEAKY_SKILL);
+    expect(parsed).toBeDefined();
+    const err = validateSkillMode(parsed!.metadata!, {
+      source: LEAKY_SKILL,
+    }) as SkillModeValidationError;
+    expect(err.code).toBe("literal_secret_rejected");
+  });
+
+  it("T1: passes when source omitted (back-compat)", () => {
+    const parsed = parseExtendedSkillFrontmatter(LEAKY_SKILL);
+    // Without `source` opts, T1 is not run; structural checks pass
+    // (it's a valid prompt SKILL).
+    expect(validateSkillMode(parsed!.metadata!)).toBeNull();
+  });
+
+  it("T1: documented R1 behaviour — single-arg signature is intentionally permissive", () => {
+    // Locks in the deferred R1 behaviour (see docs/jiagou/审计-secrets-v1.md
+    // §六 R1): the single-arg validateSkillMode(meta) signature does
+    // NOT trigger T1 even when the SKILL source clearly contains a
+    // literal token. Hosts wanting full literal-secret protection at
+    // SKILL-save time MUST pass `{ source }`. This test fails if a
+    // future change accidentally enables T1 by default — that would
+    // be a breaking semantic change deserving its own commit + bump.
+    const parsed = parseExtendedSkillFrontmatter(LEAKY_SKILL);
+    const result = validateSkillMode(parsed!.metadata!); // no opts
+    expect(result).toBeNull();
+  });
+
+  it("T2: documented R1 behaviour — single-arg signature does NOT verify secret_refs", () => {
+    // Same R1 lock-in for T2: secret_refs that don't exist are not
+    // flagged unless the host passes `{ secretProvider }`.
+    const parsed = parseExtendedSkillFrontmatter(REFS_SKILL);
+    const result = validateSkillMode(parsed!.metadata!); // no opts
+    expect(result).toBeNull();
+  });
+
+  it("parses secret_refs from frontmatter", () => {
+    const parsed = parseExtendedSkillFrontmatter(REFS_SKILL);
+    expect(parsed?.metadata?.secretRefs).toEqual(["openai_default", "github_pat"]);
+  });
+
+  it("T2: missing profile rejected when provider supplied", () => {
+    const parsed = parseExtendedSkillFrontmatter(REFS_SKILL);
+    const provider = {
+      hasProfile: (name: string) => name === "openai_default", // github_pat missing
+    };
+    const err = validateSkillMode(parsed!.metadata!, {
+      secretProvider: provider,
+    }) as SkillModeValidationError;
+    expect(err.code).toBe("missing_secret_profile");
+    expect(err.field).toBe("secret_refs[1]");
+  });
+
+  it("T2: passes when all profiles registered", () => {
+    const parsed = parseExtendedSkillFrontmatter(REFS_SKILL);
+    const provider = { hasProfile: () => true };
+    expect(
+      validateSkillMode(parsed!.metadata!, { secretProvider: provider }),
+    ).toBeNull();
+  });
+
+  it("T2: not run when provider omitted (back-compat)", () => {
+    const parsed = parseExtendedSkillFrontmatter(REFS_SKILL);
+    expect(validateSkillMode(parsed!.metadata!)).toBeNull();
+  });
+});
+
 describe("resolvedSkillMode + normalizeSkillMode", () => {
   it("infers tool mode from tool_schema", () => {
     const meta: ExtendedSkillMetadata = {

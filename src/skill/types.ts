@@ -109,7 +109,10 @@ export type SkillModeValidationCode =
   | "agent_config_with_prompt"
   | "agent_io_schema_with_prompt"
   | "invalid_runtime_kind"
-  | "invalid_skill_mode";
+  | "invalid_skill_mode"
+  // Secret-profile validation (v1.2.0+)
+  | "literal_secret_rejected"
+  | "missing_secret_profile";
 
 /**
  * Structured validation error (preferred over throwing so callers can

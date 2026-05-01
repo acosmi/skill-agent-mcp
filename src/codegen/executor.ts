@@ -24,6 +24,7 @@ import {
   type StepResult,
 } from "./types.ts";
 import { type ComposedToolStore } from "./store.ts";
+import { redactSecrets } from "../secrets/redact.ts";
 
 // ── Public types ───────────────────────────────────────────────────
 
@@ -365,7 +366,15 @@ export function lookupPath(
 
 // ── Result formatting ──────────────────────────────────────────────
 
-/** Markdown-format the per-step results into a single response body. */
+/**
+ * Markdown-format the per-step results into a single response body.
+ *
+ * The final string is run through `redactSecrets()` so any recognisable
+ * token shapes that leaked into step outputs (e.g. an upstream API
+ * echoing the Authorization header in an error body) are replaced with
+ * "***" before reaching the MCP client. This is a best-effort safety
+ * net — see src/secrets/redact.ts for caveats.
+ */
 export function formatComposedResult(
   toolName: string,
   results: readonly StepResult[],
@@ -387,7 +396,7 @@ export function formatComposedResult(
   if (abortMsg) {
     out += `**Aborted**: ${abortMsg}\n`;
   }
-  return out;
+  return redactSecrets(out);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────

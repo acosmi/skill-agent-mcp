@@ -61,6 +61,11 @@
       "bun": "./src/mcp/index.ts",
       "import": "./dist/mcp/index.js"
     },
+    "./secrets": {
+      "types": "./dist/secrets/index.d.ts",
+      "bun": "./src/secrets/index.ts",
+      "import": "./dist/secrets/index.js"
+    },
     "./skill": {
       "types": "./dist/skill/index.d.ts",
       "bun": "./src/skill/index.ts",

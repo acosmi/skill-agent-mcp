@@ -67,6 +67,70 @@ to think about whether they're invoking a "prompt" or a "sub-agent".
 └──────────────────────────────────────────────────────────────┘
 ```
 
+### src/secrets/ — secret-profile subsystem (v1.2.0+)
+
+Profile-ref pattern: SKILL.md only stores profile **names**
+(`openai_default`); the actual secret lives in `process.env` /
+`/run/secrets/...` / a registered SecretSourceAdapter, and is
+resolved at call-time by tool implementations holding a
+`SecretProvider` handle. Raw secrets never enter `varMap`, never
+pass through the codegen template engine, and never reach the
+formatted MCP response (the `formatComposedResult` redact pass
+scrubs known token shapes as a final safety net).
+
+**Secret-leakage invariants — split by enforcement level:**
+
+*Architectural (always enforced, no host config required):*
+- Secrets never enter `varMap` — `resolveProfile` is called from inside
+  the host's tool implementation, not from the framework's template
+  engine.
+- `formatComposedResult` runs `redactSecrets()` as the last step before
+  returning to the MCP client, scrubbing recognisable token shapes
+  (sk-..., ghp_..., Bearer ..., AKIA..., xoxb-..., etc.).
+- On POSIX, `FileSecretSource` does **two-layer mode check**: `lstat`
+  on the path entry itself (rejecting loose-mode symlinks even when
+  the target is 600) and `stat` on the resolved file (rejecting
+  group/other-readable targets).
+
+*Opt-in (only when host calls `validateSkillMode(meta, opts)` with
+the second argument):*
+- T1 — literal-secret refusal in SKILL source (`opts.source` provided).
+- T2 — `secret_refs` existence check against the registered profile
+  store (`opts.secretProvider` provided).
+
+The bundled `skill_generate` / `skill_manage update` / `skill_parse`
+MCP tools intentionally do NOT pass `opts` — they remain
+back-compatible with v1.1.0 callers. Hosts that want T1/T2 enforced
+at SKILL save time must call `validateSkillMode(meta, { source,
+secretProvider })` themselves before persisting. See
+`docs/jiagou/审计-acosmi-skill-agent-mcp-secrets-v1.md` §六 R1.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                       src/secrets/                           │
+│  types.ts        : SecretProvider/SourceAdapter/Profile      │
+│  store.ts        : SecretProfileStore (0o600 + atomic)       │
+│  provider.ts     : DefaultSecretProvider                     │
+│  sources/env.ts  : EnvSecretSource                           │
+│  sources/file.ts : FileSecretSource (mode 校验)              │
+│  redact.ts       : redactSecrets() / findLiteralSecret()     │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                src/manage/secret-profile-manage.ts           │
+│  5 actions: register / list / get / remove / test            │
+│  Never accepts / returns a raw secret value                  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Extension points (out-of-tree sibling packages, no native deps in
+this package):
+- `@acosmi/skill-secrets-keychain` (planned) — registers
+  `KeychainSecretSource` with prefix `keychain:`
+- `@acosmi/skill-secrets-vault` (planned) — registers
+  `VaultSecretSource` with prefix `vault:`
+
 `src/llm/` (LLMClient + Anthropic / OpenAI reference adapters) is
 exposed as a sibling subsystem — the dispatcher itself never imports
 LLMClient directly; hosts that wire `spawnSubagent` typically do. The

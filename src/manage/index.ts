@@ -35,6 +35,13 @@ export {
   executeManageTool,
 } from "./manage-tool.ts";
 
+// ── secret_profile_manage (v1.2.0+) ─────────────────────────────────
+export {
+  executeSecretProfileManage,
+  type SecretProfileManageContext,
+  secretProfileManageToolDef,
+} from "./secret-profile-manage.ts";
+
 // ── SKILL.md frontmatter ─────────────────────────────────────────────
 export type {
   CrabClawSkillMetadata,
