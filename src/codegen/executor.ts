@@ -164,7 +164,7 @@ export class ComposedSubsystem {
             results.push({ action: step.action, error: message });
             continue;
           case "retry":
-            return `[step ${step.action} retry exhausted: ${message}]`;
+            return `[step ${i + 1}/${def.steps.length} ${step.action} retry exhausted: ${message}]`;
           default:
             return `[step ${i + 1}/${def.steps.length} ${step.action} failed: ${message}]`;
         }

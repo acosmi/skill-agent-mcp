@@ -302,6 +302,57 @@ describe("ComposedSubsystem.executeTool", () => {
     expect(result).toContain("Step 2: ok [done]");
   });
 
+  it("on_error=retry exhausted error includes step number/total (P2-5)", async () => {
+    const store = new ComposedToolStore();
+    store.set({
+      name: "skill_retry",
+      skillName: "retry",
+      skillPath: "/p",
+      description: "",
+      inputSchema: {},
+      outputSchema: {},
+      steps: [
+        {
+          action: "first",
+          description: "",
+          tool: "ok",
+          inputMap: {},
+          outputAs: "",
+          approval: "none",
+          onError: "abort",
+          loopOver: "",
+          toolNodeId: "node/ok",
+        },
+        {
+          action: "flaky",
+          description: "",
+          tool: "always_fail",
+          inputMap: {},
+          outputAs: "",
+          approval: "none",
+          onError: "retry",
+          loopOver: "",
+          toolNodeId: "node/always_fail",
+        },
+      ],
+      maxApproval: "none",
+      treeNodeId: "composed/skill_retry",
+      compiledAt: "2026-01-01T00:00:00Z",
+      skillHash: "abc",
+    });
+    const exec: ExecuteToolFn = async (name) => {
+      if (name === "ok") return "OK";
+      throw new Error("permafail");
+    };
+    const result = await new ComposedSubsystem(store, exec).executeTool(
+      "skill_retry",
+      JSON.stringify({}),
+    );
+    expect(result).toContain("step 2/2");
+    expect(result).toContain("flaky retry exhausted");
+    expect(result).toContain("permafail");
+  });
+
   it("loop_over referencing a non-array variable aborts with descriptive error (P2-4)", async () => {
     const store = new ComposedToolStore();
     store.set({
