@@ -4,12 +4,13 @@
 // of `steps[]` that compose existing tools (and sometimes other SKILLs)
 // into a single callable. Composition runs through the codegen + executor
 // pipeline (commits #11–#13).
-//
-// This file is a placeholder shim until commit #13 lands. We keep the
-// interface stable now so MCP tool wiring (commit #17) can be authored
-// against the final shape; the body of `dispatchToolSkill` will be
-// rewritten in commit #13 to delegate to ComposedSubsystem.executeTool.
 
+import {
+  ComposedSubsystem,
+  type ComposedToolStore,
+  type ExecuteToolFn,
+  sanitizeName,
+} from "../codegen/index.ts";
 import type { ExtendedSkillMetadata } from "../skill/types.ts";
 
 /** Input shape for tool-mode SKILLs (matches `tool_input_schema` declarations). */
@@ -63,28 +64,87 @@ export class InMemoryToolCallbackRegistry implements ToolCallbackRegistry {
 
 /** Context the tool-mode dispatcher receives from the MCP server. */
 export interface ToolModeContext {
-  /** Pluggable tool registry — required when the SKILL has steps. */
+  /**
+   * Pluggable tool registry — every step's `tool` name is looked up
+   * here. Tools that are not registered fail at execute time with an
+   * "tool not registered" error (matches v1.0 expectations).
+   */
   registry: ToolCallbackRegistry;
+  /**
+   * Composed-tool store keyed by the synthesized name `skill_<sanitized>`.
+   * Populated by `codegen()` (commit #12) and persisted via
+   * loadComposedToolStore / saveComposedToolStore (commit #11).
+   */
+  composedStore: ComposedToolStore;
 }
 
 /**
- * Dispatch a tool-mode SKILL.
+ * Dispatch a tool-mode SKILL by name. Looks up the compiled
+ * ComposedToolDef in `context.composedStore` (synthesized name =
+ * `"skill_" + sanitizeName(metadata.treeId)`) and invokes the executor.
  *
- * **Stub** — commit #13 wires this to ComposedSubsystem.executeTool so
- * step composition + `{{var.path}}` template resolution + loop / retry /
- * abort semantics actually run. Until then this returns a structured
- * placeholder so the MCP server wiring (commit #17) can be authored
- * against the final signature without forward dependencies.
+ * Returns the executor's markdown-formatted result string as the MCP
+ * tool's `text` content. Errors during composed-tool execution are
+ * embedded in `output.text` per the per-step `on_error` policy; only
+ * configuration errors (missing composed tool, missing registry entry)
+ * surface as `text` prefixed with `[skill_mode=tool]`.
  */
 export async function dispatchToolSkill(
   metadata: ExtendedSkillMetadata,
-  _input: ToolModeInput,
-  _context: ToolModeContext,
-  _signal?: AbortSignal,
+  input: ToolModeInput,
+  context: ToolModeContext,
+  signal?: AbortSignal,
 ): Promise<ToolModeOutput> {
-  return Promise.resolve({
-    text:
-      `[skill_mode=tool] dispatcher placeholder for ${metadata.treeId ?? "<unknown>"}.\n` +
-      `Composed-tool execution lands in commit #13.`,
-  });
+  const skillName = metadata.treeId ?? "";
+  if (!skillName) {
+    return {
+      text: `[skill_mode=tool] cannot dispatch: SKILL has no tree_id`,
+    };
+  }
+  const composedToolName = "skill_" + sanitizeName(skillName);
+  if (!context.composedStore.get(composedToolName)) {
+    return {
+      text:
+        `[skill_mode=tool] composed tool ${JSON.stringify(composedToolName)} not in store ` +
+        `(run codegen() against this SKILL.md before dispatching)`,
+    };
+  }
+
+  const executeToolFn: ExecuteToolFn = async (
+    toolName,
+    inputJson,
+    abortSignal,
+  ) => {
+    const callback = context.registry.get(toolName);
+    if (!callback) {
+      throw new Error(
+        `tool ${JSON.stringify(toolName)} is not registered in the ToolCallbackRegistry`,
+      );
+    }
+    let inputObj: Record<string, unknown>;
+    try {
+      const parsed = JSON.parse(inputJson);
+      inputObj =
+        parsed && typeof parsed === "object" && !Array.isArray(parsed)
+          ? (parsed as Record<string, unknown>)
+          : {};
+    } catch {
+      inputObj = {};
+    }
+    const result = await callback(inputObj, abortSignal);
+    if (typeof result === "string") return result;
+    try {
+      return JSON.stringify(result);
+    } catch {
+      return String(result);
+    }
+  };
+
+  const subsystem = new ComposedSubsystem(context.composedStore, executeToolFn);
+  const text = await subsystem.executeTool(
+    composedToolName,
+    JSON.stringify(input),
+    signal,
+  );
+  return { text };
 }

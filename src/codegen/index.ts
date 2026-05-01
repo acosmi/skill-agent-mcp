@@ -41,3 +41,14 @@ export {
   type ToolTreeLookup,
   type ToolTreeLookupResult,
 } from "./codegen.ts";
+
+export {
+  type ComposedToolDefSummary,
+  ComposedSubsystem,
+  type ExecuteToolFn,
+  formatComposedResult,
+  lookupPath,
+  resolveInputMap,
+  resolveTemplate,
+  resolveVar,
+} from "./executor.ts";
