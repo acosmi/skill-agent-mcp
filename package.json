@@ -4,6 +4,14 @@
   "description": "MCP server exposing skill-driven agent capabilities — SKILL.md as the unified fusion layer for tools, prompt fragments, and sub-agents.",
   "license": "Apache-2.0",
   "author": "fushihua <fgfncc@gmail.com>",
+  "homepage": "https://github.com/acosmi/skill-agent-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acosmi/skill-agent-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/acosmi/skill-agent-mcp/issues"
+  },
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

@@ -2,8 +2,8 @@
 
 ## Goal
 
-Expose [crabclaw](https://github.com/Acosmi/CrabClawApp)'s skill-driven
-agent capabilities to external LLM clients through a single MCP server,
+Expose crabclaw's (private) skill-driven agent capabilities to external
+LLM clients through a single MCP server,
 with SKILL.md acting as the **unified fusion layer** for tools, prompt
 fragments, and sub-agents.
 
