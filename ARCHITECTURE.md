@@ -7,8 +7,11 @@ LLM clients through a single MCP server,
 with SKILL.md acting as the **unified fusion layer** for tools, prompt
 fragments, and sub-agents.
 
-External clients (Claude Desktop, Code, Cursor, ...) discover one tool
-per registered SKILL, regardless of `skill_mode`. The server dispatches
+External clients (🦀 Crab Code CLI, 🦀 Crab Code Desktop, Claude Desktop,
+Code, Cursor, ...) discover one tool per registered SKILL, regardless
+of `skill_mode`. Crab Code CLI / Desktop are acosmi's first-party
+clients with deep integration; other clients connect via standard MCP
+protocol. The server dispatches
 based on the SKILL's mode internally; the protocol never asks the client
 to think about whether they're invoking a "prompt" or a "sub-agent".
 

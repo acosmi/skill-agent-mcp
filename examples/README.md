@@ -7,7 +7,7 @@ implementations of the host-supplied callbacks the framework expects.
 
 | Path | Purpose |
 |------|---------|
-| `claude-desktop-config.json` | Drop-in `mcpServers` block for Claude Desktop / Code. Replace the `/absolute/path/to/...` placeholders before use. |
+| `claude-desktop-config.json` | Drop-in `mcpServers` block. Works for 🦀 Crab Code CLI / Desktop (paste into Crab Code's MCP settings), Claude Desktop / Code, and any other MCP host using the same config schema. Replace the `/absolute/path/to/...` placeholders before use. |
 | `skills/hello-prompt/SKILL.md` | Minimal `skill_mode=prompt` SKILL. The body is returned verbatim. |
 | `skills/hello-tool/SKILL.md` | `skill_mode=tool` composing two host callbacks (`echo` → `uppercase`). |
 | `skills/hello-agent/SKILL.md` | `skill_mode=agent` with a tightened whitelist (`inherit: minimal` + `allow: [read_file]`). |

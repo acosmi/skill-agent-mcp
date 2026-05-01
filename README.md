@@ -8,8 +8,8 @@
 `@acosmi/skill-agent-mcp` 把 [`@acosmi/agent`](https://github.com/acosmi/agent)
 的能力树子系统包装在
 [Model Context Protocol](https://modelcontextprotocol.io) 服务器后面，
-让外部 LLM 客户端（Claude Desktop / Code、Cursor 等）通过**单一统一的工具
-表面**发现并调用 SKILL 驱动的能力。
+让外部 LLM 客户端（**Crab Code CLI**、**Crab Code Desktop**、Claude Desktop / Code、Cursor 等）
+通过**单一统一的工具表面**发现并调用 SKILL 驱动的能力。
 
 SKILL.md 在内部被处理为**统一融合层**：工具、提示词片段、子智能体三种模式
 （`prompt` / `tool` / `agent`）使用同一份模板规范，由服务端按 `skill_mode`
@@ -43,7 +43,7 @@ MCP 协议表面保持不变：每个 SKILL 在客户端看来仍然是**一个 
 - ✅ **权限单调衰减**：子智能体永远不能获得父智能体没有的工具。
 - ✅ **Skill-to-Tool 编译器**：`tool_schema.steps[]` 编译为可调用的组合工具。
 - ✅ **`{{var.path}}` 模板引擎**：纯变量引用保留原始类型；混合字符串通过 `String(value)` 插值。
-- ✅ **两种 transport**：stdio（Claude Desktop / Code）+ Streamable HTTP（远程，SDK 推荐替代 SSE）。
+- ✅ **两种 transport**：stdio（Crab Code CLI / Desktop · Claude Desktop / Code）+ Streamable HTTP（远程，SDK 推荐替代 SSE）。
 - ✅ **自然语言 SKILL 创作**：`skill_suggest` + `skill_generate` 让调用 LLM 在已知良好模板上迭代。
 - ✅ **workspace-root 防越界**：拒绝写入配置根目录之外，即便客户端给出含 `..` 的恶意 `tree_id`。
 - ✅ **原子写 JSON 持久化**：组合工具存储跨重启保留（tmp + rename，权限 0o600）。
@@ -72,6 +72,25 @@ MCP 协议表面保持不变：每个 SKILL 在客户端看来仍然是**一个 
 
 校验会拒绝不匹配的组合（如 `skill_mode=agent` 但缺 `agent_config`，
 或 `skill_mode=tool` 但同时含 `agent_config`）。
+
+---
+
+## 兼容的 LLM 客户端
+
+`@acosmi/skill-agent-mcp` 实现标准 [Model Context Protocol](https://modelcontextprotocol.io)，
+理论上任何 MCP 兼容客户端都能接入。**推荐顺序**：
+
+| 客户端 | 类型 | 接入方式 | 说明 |
+|--------|-----|---------|------|
+| 🦀 **Crab Code CLI** | 命令行 / 终端原生集成 | 一行 `crabcode mcp add @acosmi/skill-agent-mcp` | acosmi 自家产品，对本包零适配，原生支持 SKILL 三模式 dispatch + 内置能力树可视化 + 自然语言 SKILL 创作 |
+| 🦀 **Crab Code Desktop** | 桌面应用（Windows / macOS / Linux）| 设置 → MCP 服务器 → 一键安装 | acosmi 自家产品，GUI 集成 SKILL 库管理 + agent_config 可视化编辑 + spawn_agent 实时审计面板 |
+| Claude Desktop | Anthropic 官方桌面客户端 | 编辑 `claude_desktop_config.json` 加 `mcpServers` 段 | 见 [`examples/claude-desktop-config.json`](./examples/claude-desktop-config.json) |
+| Claude Code | Anthropic 官方 CLI | `claude mcp add` 命令 | stdio transport |
+| Cursor | AI 编辑器 | Settings → MCP Servers | stdio + HTTP 双支持 |
+| Continue.dev | VS Code / JetBrains 插件 | `~/.continue/config.json` 加 `mcpServers` 字段 | stdio transport |
+| 自建宿主 | 任何使用 `@modelcontextprotocol/sdk` 的程序 | 通过 `createServer()` 编程接入 | 见下方"快速开始：嵌入式调用" |
+
+> 🦀 标记为 acosmi 自家产品，开箱即用、深度集成、推荐首选。其他客户端通过标准 MCP 协议接入，功能相同但需手动配置。
 
 ---
 
@@ -112,8 +131,8 @@ bun bin/acosmi-skill-agent-mcp \
   --state-dir ./.state
 ```
 
-Claude Desktop / Code 用户可直接把
-[`examples/claude-desktop-config.json`](./examples/claude-desktop-config.json)
+Crab Code CLI / Desktop 用户：见 Crab Code 内置文档 `crabcode mcp add @acosmi/skill-agent-mcp` 一键完成。
+Claude Desktop / Code 用户：把 [`examples/claude-desktop-config.json`](./examples/claude-desktop-config.json)
 中的 `mcpServers` 段贴入自己的客户端配置（替换里面的绝对路径）。
 
 ---
@@ -199,7 +218,7 @@ await server.connect(createStdioTransport());
 ## 架构（高层）
 
 ```
-外部 LLM 客户端（Claude Desktop / Code · Cursor · Continue.dev · ...）
+外部 LLM 客户端（🦀 Crab Code CLI · 🦀 Crab Code Desktop · Claude Desktop / Code · Cursor · Continue.dev · ...）
               │
               │  MCP 协议（stdio 或 Streamable HTTP）
               ▼
@@ -263,8 +282,8 @@ await server.connect(createStdioTransport());
 ### 这能在 Claude / Anthropic 之外用吗？
 
 可以。框架完全 provider-agnostic — `LLMClient` 自带 Anthropic / OpenAI /
-Ollama 三个参考适配器，且任何 MCP 兼容客户端（Cursor、Continue.dev、
-自建宿主）都可通过 stdio 或 HTTP 接入。
+Ollama 三个参考适配器，且任何 MCP 兼容客户端（🦀 **Crab Code CLI / Desktop**（首推）、
+Claude Desktop / Code、Cursor、Continue.dev、自建宿主）都可通过 stdio 或 HTTP 接入。
 
 ### 为什么 `private: true`？
 

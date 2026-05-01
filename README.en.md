@@ -7,9 +7,9 @@
 
 `@acosmi/skill-agent-mcp` wraps the [`@acosmi/agent`](https://github.com/acosmi/agent)
 capability-tree subsystem behind a [Model Context Protocol](https://modelcontextprotocol.io)
-server, letting external LLM clients (Claude Desktop, Claude Code, Cursor, …)
-discover and execute SKILL-driven capabilities through a **single uniform
-tool surface**.
+server, letting external LLM clients (**Crab Code CLI**, **Crab Code Desktop**,
+Claude Desktop, Claude Code, Cursor, …) discover and execute SKILL-driven
+capabilities through a **single uniform tool surface**.
 
 SKILL.md is treated as a **unified fusion layer**: tools, prompt fragments,
 and sub-agents all live in the same template grammar and dispatch
@@ -52,7 +52,7 @@ MCP tool** to the client.
   callable composed tool with a single command.
 - ✅ **`{{var.path}}` template engine** — pure variable refs preserve
   the original value type; mixed strings interpolate via `String(value)`.
-- ✅ **Two transports** — stdio (Claude Desktop / Code) + Streamable
+- ✅ **Two transports** — stdio (Crab Code CLI / Desktop · Claude Desktop / Code) + Streamable
   HTTP (remote, the SDK-recommended replacement for SSE).
 - ✅ **Natural-language SKILL authoring** — `skill_suggest` + `skill_generate`
   let the calling LLM iterate against a known-good template.
@@ -88,6 +88,26 @@ auto-resolves the mode based on `skill_mode` + presence of `tool_schema` /
 
 Validation rejects mismatched combinations (e.g. `skill_mode=agent`
 without `agent_config`, or `skill_mode=tool` with `agent_config`).
+
+---
+
+## Compatible LLM clients
+
+`@acosmi/skill-agent-mcp` implements the standard
+[Model Context Protocol](https://modelcontextprotocol.io), so any
+MCP-compatible client can connect. **Recommended order**:
+
+| Client | Type | How to connect | Notes |
+|--------|------|----------------|-------|
+| 🦀 **Crab Code CLI** | Native terminal integration | `crabcode mcp add @acosmi/skill-agent-mcp` (one-shot) | acosmi's first-party product. Zero configuration; native support for the three SkillModes + built-in capability-tree visualizer + natural-language SKILL authoring. |
+| 🦀 **Crab Code Desktop** | Desktop app (Windows / macOS / Linux) | Settings → MCP Servers → install with one click | acosmi's first-party product. GUI for SKILL library management + agent_config visual editor + spawn_agent live audit panel. |
+| Claude Desktop | Anthropic's official desktop client | Edit `claude_desktop_config.json`, add an `mcpServers` block | See [`examples/claude-desktop-config.json`](./examples/claude-desktop-config.json). |
+| Claude Code | Anthropic's official CLI | `claude mcp add` command | stdio transport. |
+| Cursor | AI editor | Settings → MCP Servers | stdio + HTTP supported. |
+| Continue.dev | VS Code / JetBrains plugin | Add `mcpServers` field to `~/.continue/config.json` | stdio transport. |
+| Custom host | Anything that uses `@modelcontextprotocol/sdk` | Embed via `createServer()` | See "Quick start: programmatic embedding" below. |
+
+> 🦀 marks acosmi's first-party products — out-of-the-box, deeply integrated, and recommended. Other clients connect via the standard MCP protocol with the same functionality but require manual configuration.
 
 ---
 
@@ -129,7 +149,9 @@ bun bin/acosmi-skill-agent-mcp \
   --state-dir ./.state
 ```
 
-For Claude Desktop / Code, drop the snippet from
+For Crab Code CLI / Desktop: see Crab Code's built-in docs;
+`crabcode mcp add @acosmi/skill-agent-mcp` is the one-shot installer.
+For Claude Desktop / Code: drop the snippet from
 [`examples/claude-desktop-config.json`](./examples/claude-desktop-config.json)
 into your `mcpServers` block (replace the absolute paths first).
 
@@ -217,7 +239,7 @@ toolbox; richer hosts opt in to the full surface.
 ## Architecture (high-level)
 
 ```
-External LLM client (Claude Desktop / Code · Cursor · Continue.dev · ...)
+External LLM client (🦀 Crab Code CLI · 🦀 Crab Code Desktop · Claude Desktop / Code · Cursor · ...)
               │
               │  MCP protocol  (stdio or Streamable HTTP)
               ▼
@@ -284,7 +306,8 @@ protocol-agnostic.
 
 Yes. The framework is provider-agnostic — `LLMClient` ships Anthropic /
 OpenAI / Ollama reference adapters and any MCP-compatible client
-(Cursor, Continue.dev, custom hosts) can connect via stdio or HTTP.
+(🦀 **Crab Code CLI / Desktop** (recommended), Claude Desktop / Code,
+Cursor, Continue.dev, custom hosts) can connect via stdio or HTTP.
 
 ### Why is `private: true` set?
 
