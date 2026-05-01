@@ -1,0 +1,27 @@
+# Source-control + dev-only files (the published payload is curated
+# via package.json#files, but .npmignore acts as a second-line guard
+# in case `files` ever drifts).
+
+# tests + dev-only fixtures
+tests/
+
+# git plumbing
+.gitignore
+.gitattributes
+.git/
+
+# package archives produced locally by `bun pm pack`
+*.tgz
+
+# editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# bun lockfile is intentionally KEPT in the published payload so users
+# get a reproducible install — do not add bun.lock here.
+
+# leave LICENSE / README / CHANGELOG / ARCHITECTURE / CONTRIBUTING /
+# docs / templates / examples / src / bin / dist in place per
+# package.json#files.
