@@ -21,13 +21,11 @@ import type {
 
 export interface OpenAIConfig {
   apiKey: string;
-  defaultModel?: string;
   baseUrl?: string;
   fetch?: typeof fetch;
 }
 
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
-const DEFAULT_OPENAI_MODEL = "gpt-4o";
 
 export class OpenAILLMClient implements LLMClient {
   readonly providerId = "openai";
@@ -39,7 +37,6 @@ export class OpenAILLMClient implements LLMClient {
     }
     this.config = {
       apiKey: config.apiKey,
-      defaultModel: config.defaultModel ?? DEFAULT_OPENAI_MODEL,
       baseUrl: config.baseUrl ?? DEFAULT_OPENAI_BASE_URL,
       fetch: config.fetch ?? fetch,
     };
@@ -72,7 +69,7 @@ export class OpenAILLMClient implements LLMClient {
   private buildBody(req: LLMRequest): Record<string, unknown> {
     const messages = this.translateMessages(req);
     const body: Record<string, unknown> = {
-      model: req.model ?? this.config.defaultModel,
+      model: req.model,
       messages,
     };
     if (req.maxTokens !== undefined) body.max_completion_tokens = req.maxTokens;
