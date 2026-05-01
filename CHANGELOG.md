@@ -5,11 +5,17 @@ All notable changes to `@acosmi/skill-agent-mcp` are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-05-01
 
 T3 全链路审计 (2026-05-01) 发现的 3 P0 + 3 P1 + 6 P2 + 1 P3 + 1 架构纠正
 （去 LLM 硬编码）— 18 项增量修复。详见
 `docs/jiagou/执行-acosmi-skill-agent-mcp-修复-2026-05-01.md`。
+
+> **SemVer 偏离公示**：本版本含 5 项 BREAKING CHANGES（见下），按严格
+> SemVer 应当 major bump 至 2.0.0。本次接受 minor bump (1.0.0→1.1.0)
+> 的理由：v1.0.0 在 npm 上发布仅数小时（2026-05-01 08:44 UTC），下游
+> 影响面已确认极小（用户自管的 known consumers）。`^1.0.0` 用户升级后
+> 若用到下表 BREAKING 项，请按 "Migration" 路径调整或 pin `1.0.0`。
 
 ### BREAKING CHANGES
 
