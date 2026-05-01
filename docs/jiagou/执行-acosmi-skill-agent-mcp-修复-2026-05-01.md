@@ -412,7 +412,7 @@
 - [x] commit 15：P1-2 注入 contract + 测试更新 — commit f455e80
 - [x] commit 16：P0-3 双 bin — commit dbdb33a
 - [x] commit 17：P0-2 HTTP listener + express dep + 测试 — commit eb69eea
-- [x] commit 18：docs 复核纠错 + 双兼容架构反映 — pending
+- [x] commit 18：docs 复核纠错 + 双兼容架构反映 — commit 940be70
 
 ---
 
