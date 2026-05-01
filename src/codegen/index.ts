@@ -24,3 +24,20 @@ export {
   type LoadStoreResult,
   saveComposedToolStore,
 } from "./store.ts";
+
+export {
+  APPROVAL_PRIORITY,
+  codegen,
+  codegenIncremental,
+  compileSteps,
+  deriveMaxApproval,
+  normalizeApproval,
+  normalizeOnError,
+  sanitizeName,
+  sha256Hex,
+  type SkillInput,
+  type StepInput,
+  type ToolSchemaInput,
+  type ToolTreeLookup,
+  type ToolTreeLookupResult,
+} from "./codegen.ts";
