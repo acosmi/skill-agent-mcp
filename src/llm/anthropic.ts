@@ -175,13 +175,18 @@ function mapStopReason(s: string): LLMStopReason {
   }
 }
 
-async function* parseSSEStream(
+// Exported for tests (anthropic-stream.test.ts mocks SSE bytes).
+export async function* parseSSEStream(
   body: ReadableStream<Uint8Array>,
 ): AsyncIterable<import("./types.ts").LLMStreamChunk> {
   const decoder = new TextDecoder();
   const reader = body.getReader();
   let buffer = "";
   let currentUsage: LLMUsage = { inputTokens: 0, outputTokens: 0 };
+  // Anthropic SSE 的 content_block_delta / content_block_stop 只携 index，不带
+  // tool_use id；多并发 tool_use 时必须靠 start 事件建立 index→id 映射，
+  // delta/stop 反查映射，否则下游分不清 partial_json 属于哪个 tool_use。
+  const indexToId = new Map<number, string>();
 
   for (;;) {
     const { value, done } = await reader.read();
@@ -199,9 +204,8 @@ async function* parseSSEStream(
       } catch {
         continue;
       }
-      const chunk = anthropicEventToChunk(event, currentUsage);
-      if (chunk !== undefined) {
-        if ("usage" in chunk) currentUsage = chunk.usage;
+      for (const chunk of anthropicEventToChunks(event, currentUsage, indexToId)) {
+        if (chunk.type === "message_end") currentUsage = chunk.usage;
         yield chunk;
       }
     }
@@ -217,33 +221,50 @@ interface AnthropicSSEEvent {
   message?: { stop_reason?: string; usage?: { input_tokens: number; output_tokens: number } };
 }
 
-function anthropicEventToChunk(
+export function anthropicEventToChunks(
   e: AnthropicSSEEvent,
   carryUsage: LLMUsage,
-): import("./types.ts").LLMStreamChunk | undefined {
+  indexToId: Map<number, string>,
+): import("./types.ts").LLMStreamChunk[] {
   switch (e.type) {
-    case "content_block_start":
+    case "content_block_start": {
       if (e.content_block?.type === "tool_use") {
-        return {
+        const id = e.content_block.id ?? "";
+        const idx = e.index;
+        if (typeof idx === "number" && id !== "") indexToId.set(idx, id);
+        return [{
           type: "tool_use_start",
-          id: e.content_block.id ?? "",
+          id,
           name: e.content_block.name ?? "",
-        };
+        }];
       }
-      return undefined;
-    case "content_block_delta":
+      return [];
+    }
+    case "content_block_delta": {
       if (e.delta?.type === "text_delta" && e.delta.text !== undefined) {
-        return { type: "text_delta", delta: e.delta.text };
+        return [{ type: "text_delta", delta: e.delta.text }];
       }
       if (e.delta?.type === "input_json_delta" && e.delta.partial_json !== undefined) {
-        return { type: "tool_use_input_delta", id: "", partialJson: e.delta.partial_json };
+        const idx = e.index;
+        const id = typeof idx === "number" ? (indexToId.get(idx) ?? "") : "";
+        return [{ type: "tool_use_input_delta", id, partialJson: e.delta.partial_json }];
       }
-      return undefined;
-    case "content_block_stop":
-      return undefined;
+      return [];
+    }
+    case "content_block_stop": {
+      const idx = e.index;
+      if (typeof idx === "number") {
+        const id = indexToId.get(idx);
+        if (id !== undefined) {
+          indexToId.delete(idx);
+          return [{ type: "tool_use_end", id }];
+        }
+      }
+      return [];
+    }
     case "message_delta":
       if (e.delta?.stop_reason !== undefined) {
-        return {
+        return [{
           type: "message_end",
           stopReason: mapStopReason(e.delta.stop_reason),
           usage: e.usage !== undefined
@@ -252,10 +273,10 @@ function anthropicEventToChunk(
                 outputTokens: e.usage.output_tokens ?? carryUsage.outputTokens,
               }
             : carryUsage,
-        };
+        }];
       }
-      return undefined;
+      return [];
     default:
-      return undefined;
+      return [];
   }
 }
