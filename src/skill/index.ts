@@ -28,3 +28,14 @@ export {
   resolvedSkillMode,
   validateSkillMode,
 } from "./validate.ts";
+
+export {
+  AggregatedSkillNodeProvider,
+  aggregateSkillEntries,
+  type AggregateMetrics,
+  type AggregateResult,
+  buildSkillNodeData,
+  type LoadedSkillEntry,
+  type SkillSource,
+  sourcePriority,
+} from "./node-provider.ts";
