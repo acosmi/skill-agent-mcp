@@ -13,6 +13,9 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
+    // Resolve `bun` exports condition so tsc can typecheck examples/ + tests/
+    // against src/ without requiring dist/ to exist first.
+    "customConditions": ["bun"],
 
     // Best practices
     "strict": true,

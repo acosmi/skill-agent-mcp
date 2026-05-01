@@ -1,109 +1,92 @@
 # @acosmi/skill-agent-mcp
 
-[中文 README →](./README.zh.md) · [GitHub](https://github.com/acosmi/skill-agent-mcp) · [Issues](https://github.com/acosmi/skill-agent-mcp/issues)
+🇨🇳 中文文档（默认） · [🇬🇧 English README →](./README.en.md) · [GitHub](https://github.com/acosmi/skill-agent-mcp) · [Issues](https://github.com/acosmi/skill-agent-mcp/issues)
 
-> **MCP server exposing skill-driven agent capabilities — SKILL.md as the
-> unified fusion layer for tools, prompt fragments, and sub-agents.**
+> **以 MCP 协议对外暴露"技能驱动智能体"能力——SKILL.md 作为工具、提示词片段、
+> 子智能体三种异质能力的统一融合层。**
 
-`@acosmi/skill-agent-mcp` wraps the [`@acosmi/agent`](https://github.com/acosmi/agent)
-capability-tree subsystem behind a [Model Context Protocol](https://modelcontextprotocol.io)
-server, letting external LLM clients (Claude Desktop, Claude Code, Cursor, …)
-discover and execute SKILL-driven capabilities through a **single uniform
-tool surface**.
+`@acosmi/skill-agent-mcp` 把 [`@acosmi/agent`](https://github.com/acosmi/agent)
+的能力树子系统包装在
+[Model Context Protocol](https://modelcontextprotocol.io) 服务器后面，
+让外部 LLM 客户端（Claude Desktop / Code、Cursor 等）通过**单一统一的工具
+表面**发现并调用 SKILL 驱动的能力。
 
-SKILL.md is treated as a **unified fusion layer**: tools, prompt fragments,
-and sub-agents all live in the same template grammar and dispatch
-server-side based on `skill_mode`. Externally every capability still
-appears as one MCP tool — clients never have to think about which mode
-they are invoking.
-
----
-
-## Why this exists
-
-LLM clients today have two main ways to extend their capabilities:
-
-1. **MCP servers** — well-defined protocol, but every tool has to be
-   hand-coded in the host language.
-2. **In-prompt tool definitions** — flexible, but the LLM has to recall
-   tool names and schemas every conversation.
-
-`@acosmi/skill-agent-mcp` collapses the gap: **SKILL.md files are the tool
-definition**, loaded server-side once. The same SKILL.md format can express:
-
-- A **prompt fragment** — zero code, pure markdown.
-- A **deterministic tool pipeline** — composed steps invoking registered
-  tools, with template-driven inputs.
-- A **sub-agent spec** — role + capability whitelist + token / time
-  budget for spawning a child LLM session.
-
-The MCP protocol surface stays unchanged: every SKILL appears as **one
-MCP tool** to the client.
+SKILL.md 在内部被处理为**统一融合层**：工具、提示词片段、子智能体三种模式
+（`prompt` / `tool` / `agent`）使用同一份模板规范，由服务端按 `skill_mode`
+字段做内部分发。对外它们一律呈现为一个 MCP 工具，调用方不必关心当前调
+的是哪一种。
 
 ---
 
-## Key features
+## 为什么要做这个包
 
-- ✅ **Three modes, one tool surface** — prompt / tool / agent collapse
-  to one MCP tool per SKILL.
-- ✅ **Permission monotone-decay** — a sub-agent can never gain a tool
-  its parent lacks.
-- ✅ **Skill-to-Tool codegen** — `tool_schema.steps[]` compiles to a
-  callable composed tool with a single command.
-- ✅ **`{{var.path}}` template engine** — pure variable refs preserve
-  the original value type; mixed strings interpolate via `String(value)`.
-- ✅ **Two transports** — stdio (Claude Desktop / Code) + Streamable
-  HTTP (remote, the SDK-recommended replacement for SSE).
-- ✅ **Natural-language SKILL authoring** — `skill_suggest` + `skill_generate`
-  let the calling LLM iterate against a known-good template.
-- ✅ **Workspace-root defense-in-depth** — refuse file writes outside the
-  configured root, even if the client supplies a malicious `tree_id`.
-- ✅ **Atomic-write JSON persistence** — composed-tool store survives
-  restarts (tmp + rename, mode 0o600).
-- ✅ **Zero built-in tools** — framework-agnostic. Register your own via
-  `ToolCallbackRegistry` (`InMemoryToolCallbackRegistry` shipped).
-- ✅ **TypeScript first** — `bun` runtime, `bunx tsc --noEmit` clean,
-  136-test suite (~200 ms).
+LLM 客户端目前主要有两种扩展能力的方式：
+
+1. **MCP servers** — 协议规范完善，但每个工具都要在宿主语言里手写。
+2. **In-prompt tool definitions** — 灵活，但 LLM 每次对话都要重新记住
+   工具名和 schema。
+
+`@acosmi/skill-agent-mcp` 把这两者收敛：**SKILL.md 文件本身就是工具定义**，
+服务端一次加载即可。同一份 SKILL.md 模板可以表达：
+
+- **提示词片段**：零代码，纯 markdown。
+- **确定性工具流水线**：组合多步调用已注册工具，输入支持模板变量替换。
+- **子智能体规格**：角色、工具白名单、token/时长预算，用于派生子 LLM 会话。
+
+MCP 协议表面保持不变：每个 SKILL 在客户端看来仍然是**一个 MCP 工具**。
 
 ---
 
-## Three SkillModes — concept primer
+## 核心特性
 
-| Mode | What the MCP tool returns | Typical use case |
-|------|---------------------------|------------------|
-| `prompt` | The SKILL body verbatim (optionally prefixed by the caller's query). | Static playbooks, reference docs, prompt fragments the calling LLM should incorporate verbatim. |
-| `tool` | Markdown-formatted per-step results from the composed pipeline. | Deterministic multi-step workflows that compose host-registered tools (e.g. "fetch → transform → write"). |
-| `agent` | `[Agent Result] …` block containing a structured `ThoughtResult`. | Long-running, autonomous sub-agent sessions with their own role + tool whitelist + token / time budget. |
-
-You can mix all three modes in a single SKILL library — the dispatcher
-auto-resolves the mode based on `skill_mode` + presence of `tool_schema` /
-`agent_config` fields. Templates for each mode live under
-[`templates/`](./templates).
-
-### How the dispatcher decides
-
-1. Read the SKILL's `skill_mode` field. If present, use it.
-2. Otherwise, if `tool_schema` is present → infer `tool`.
-3. Otherwise → fall back to `prompt`.
-
-Validation rejects mismatched combinations (e.g. `skill_mode=agent`
-without `agent_config`, or `skill_mode=tool` with `agent_config`).
+- ✅ **三种模式，一个工具表面**：prompt / tool / agent 折叠为每个 SKILL 一个 MCP 工具。
+- ✅ **权限单调衰减**：子智能体永远不能获得父智能体没有的工具。
+- ✅ **Skill-to-Tool 编译器**：`tool_schema.steps[]` 编译为可调用的组合工具。
+- ✅ **`{{var.path}}` 模板引擎**：纯变量引用保留原始类型；混合字符串通过 `String(value)` 插值。
+- ✅ **两种 transport**：stdio（Claude Desktop / Code）+ Streamable HTTP（远程，SDK 推荐替代 SSE）。
+- ✅ **自然语言 SKILL 创作**：`skill_suggest` + `skill_generate` 让调用 LLM 在已知良好模板上迭代。
+- ✅ **workspace-root 防越界**：拒绝写入配置根目录之外，即便客户端给出含 `..` 的恶意 `tree_id`。
+- ✅ **原子写 JSON 持久化**：组合工具存储跨重启保留（tmp + rename，权限 0o600）。
+- ✅ **零内置工具**：框架完全 agnostic。通过 `ToolCallbackRegistry` 注册自己的工具（自带 `InMemoryToolCallbackRegistry`）。
+- ✅ **TypeScript 优先**：`bun` 运行时，`bunx tsc --noEmit` 全绿，136 测试套件（约 200ms）。
 
 ---
 
-## Status
+## 三种 SkillMode 概念入门
 
-**v1.0.0** — initial release. Local-only at this stage
-(`package.json#private: true`); the package is feature-complete for the
-documented surface. Subsequent releases will harden `mcp/` + `e2e/` test
-coverage and add a built-in disk-walking `SkillResolver`.
+| 模式 | MCP 工具返回 | 典型用途 |
+|------|-------------|---------|
+| `prompt` | SKILL 正文原样返回（可选地在前面加用户的 query）。 | 静态操作手册、参考文档、需要由调用 LLM 原样吸收的提示词片段。 |
+| `tool` | 组合流水线每步结果的 markdown 表示。 | 确定性多步工作流，组合宿主已注册的工具（例如 "fetch → transform → write"）。 |
+| `agent` | `[Agent Result] …` 块，含结构化 `ThoughtResult`。 | 长期运行的自治子智能体会话，有自己的角色 + 工具白名单 + token/时长预算。 |
 
-`v1.0.0` git tag is on `main`; release notes in
-[CHANGELOG.md](./CHANGELOG.md).
+可以在同一个 SKILL 库里混用三种模式 — dispatcher 会根据 `skill_mode`
++ `tool_schema` / `agent_config` 字段是否存在自动解析。每种模式的模板
+都在 [`templates/`](./templates) 下。
+
+### dispatcher 的判定规则
+
+1. 读 SKILL 的 `skill_mode` 字段，存在则用它。
+2. 否则若存在 `tool_schema` → 推断为 `tool`。
+3. 否则 → 回退到 `prompt`。
+
+校验会拒绝不匹配的组合（如 `skill_mode=agent` 但缺 `agent_config`，
+或 `skill_mode=tool` 但同时含 `agent_config`）。
 
 ---
 
-## Install (local development)
+## 状态
+
+**v1.0.0** — 首个发布版。当前阶段保持本地（`package.json#private: true`），
+功能层面对已记录的 surface 已闭环。后续版本会加强 `mcp/` + `e2e/` 测试
+覆盖度，并加入内置的基于磁盘扫描的 `SkillResolver`。
+
+`v1.0.0` git tag 在 `main` 分支；发布说明见
+[CHANGELOG.md](./CHANGELOG.md)。
+
+---
+
+## 安装（本地开发）
 
 ```bash
 git clone https://github.com/acosmi/skill-agent-mcp.git
@@ -113,13 +96,13 @@ bun test          # 136 pass / 2 skip / 0 fail / ~200 ms
 bunx tsc --noEmit # 0 errors
 ```
 
-Bun ≥ 1.3 and Node ≥ 20 (for the CLI shim) are required.
+要求 Bun ≥ 1.3 + Node ≥ 20（用于 CLI shim）。
 
 ---
 
-## Quick start: stdio MCP server
+## 快速开始：stdio MCP 服务器
 
-Run the bundled examples without writing any host code:
+直接用项目自带的示例 SKILL 启动（不需要任何宿主代码）：
 
 ```bash
 bun bin/acosmi-skill-agent-mcp \
@@ -129,13 +112,13 @@ bun bin/acosmi-skill-agent-mcp \
   --state-dir ./.state
 ```
 
-For Claude Desktop / Code, drop the snippet from
+Claude Desktop / Code 用户可直接把
 [`examples/claude-desktop-config.json`](./examples/claude-desktop-config.json)
-into your `mcpServers` block (replace the absolute paths first).
+中的 `mcpServers` 段贴入自己的客户端配置（替换里面的绝对路径）。
 
 ---
 
-## Quick start: Streamable HTTP MCP server
+## 快速开始：Streamable HTTP 服务器
 
 ```bash
 bun bin/acosmi-skill-agent-mcp \
@@ -147,7 +130,7 @@ bun bin/acosmi-skill-agent-mcp \
 
 ---
 
-## Quick start: programmatic embedding
+## 快速开始：嵌入式调用（程序内挂载）
 
 ```ts
 import { CapabilityTree, setTreeBuilder } from "@acosmi/skill-agent-mcp/capabilities";
@@ -157,23 +140,23 @@ import { InMemoryToolCallbackRegistry } from "@acosmi/skill-agent-mcp/dispatch";
 import { createServer, createStdioTransport } from "@acosmi/skill-agent-mcp/mcp";
 import { promises as fs } from "node:fs";
 
-// 1. Capability tree — empty here; production hosts seed real nodes.
+// 1. 能力树 — 此处为空；生产宿主会塞入真实节点。
 const tree = new CapabilityTree();
 setTreeBuilder(() => tree);
 
-// 2. Resolver — production hosts walk disk; demos use the static helper.
+// 2. SKILL 解析器 — 生产宿主走磁盘扫描；demo 用 static helper。
 const skillSources: Record<string, string> = {
   "tools/demo/hello": await fs.readFile("./skills/hello/SKILL.md", "utf-8"),
 };
 const skillResolver: SkillResolverWithBody = staticSkillResolver(skillSources);
 
-// 3. Tool registry + composed-tool store (only needed for tool-mode SKILLs).
+// 3. 工具注册表 + 组合工具存储（仅 tool-mode SKILL 需要）
 const toolRegistry = new InMemoryToolCallbackRegistry();
 toolRegistry.register("echo", async (input) => String(input["text"] ?? ""));
 
 const composedStore = new ComposedToolStore();
 
-// 4. Build + connect the MCP server.
+// 4. 构造 + 连接 MCP 服务器
 const server = createServer({
   tree,
   skillsDir: "./skills",
@@ -182,168 +165,161 @@ const server = createServer({
   skillResolver,
   toolRegistry,
   composedStore,
-  // spawnSubagent: ...host-supplied LLM loop... (only for agent-mode SKILLs)
+  // spawnSubagent: ...宿主提供的 LLM loop... (仅 agent-mode SKILL 需要)
 });
 
 await server.connect(createStdioTransport());
 ```
 
-See [`examples/`](./examples) for working demos of all three modes.
+完整 demo 见 [`examples/`](./examples)。
 
 ---
 
-## MCP tools registered
+## 注册的 MCP 工具
 
-`createServer()` registers up to 11 MCP tools, each gated on the
-presence of the relevant optional dependency. Minimal hosts get a small
-toolbox; richer hosts opt in to the full surface.
+`createServer()` 最多注册 11 个 MCP 工具，每个都按对应可选依赖是否
+存在做开关。极简宿主拿到的工具集很小；功能完整的宿主可以打开全部。
 
-| Tool | Purpose | Dependency gating |
-|------|---------|-------------------|
-| `capability_manage` | Inspect / validate / diagnose / patch the capability tree (folds 13 actions; pass JSON via `payload`). | always |
-| `tree_lookup_tool` | Resolve a tool name to its tree node id + runtime owner. | always |
-| `tree_dump` | Full tree as JSON. | always |
-| `tree_list_tier` | Tools available at / below an intent tier. | always |
-| `tree_list_bindable` | Nodes that accept SKILL.md frontmatter binding. | always |
-| `skill_suggest` | Recommend a SKILL.md template from a free-form description. | always |
-| `skill_generate` | Validate-then-save a SKILL.md draft. | always |
-| `skill_manage` | List / get / update / delete / export SKILLs. | always |
-| `skill_activate` | Invoke a SKILL through the dispatcher to verify runtime behaviour. | requires `skillResolver` |
-| `skill_parse` | Parse + (optionally) validate a SKILL.md source. | always |
-| `spawn_agent` | Agent-mode SKILL spawn. | requires `skillResolver` + `spawnSubagent` |
+| 工具 | 功能 | 依赖门控 |
+|------|------|---------|
+| `capability_manage` | 查看 / 校验 / 诊断 / 补丁 能力树（13 actions 折单工具，通过 `payload` 传 JSON） | 始终注册 |
+| `tree_lookup_tool` | 按工具名解析能力树节点 ID + 运行时归属 | 始终注册 |
+| `tree_dump` | 把整棵能力树以 JSON 形式导出 | 始终注册 |
+| `tree_list_tier` | 列出某意图层级（greeting / task_light / 等）下的全部工具节点 | 始终注册 |
+| `tree_list_bindable` | 列出所有支持 SKILL.md 绑定的节点 | 始终注册 |
+| `skill_suggest` | 根据自由描述推荐最合适的 SKILL.md 模板 | 始终注册 |
+| `skill_generate` | 校验后保存客户端 LLM 起草的 SKILL.md 草稿 | 始终注册 |
+| `skill_manage` | 列出 / 读取 / 更新 / 删除 / 导出 SKILL.md | 始终注册 |
+| `skill_activate` | 通过 dispatcher 派发一个 SKILL，验证其运行时行为 | 需 `skillResolver` |
+| `skill_parse` | 解析 SKILL.md frontmatter，可选执行 SkillMode 校验 | 始终注册 |
+| `spawn_agent` | 派生 agent 模式的子智能体 | 需 `skillResolver` + `spawnSubagent` |
 
 ---
 
-## Architecture (high-level)
+## 架构（高层）
 
 ```
-External LLM client (Claude Desktop / Code · Cursor · Continue.dev · ...)
+外部 LLM 客户端（Claude Desktop / Code · Cursor · Continue.dev · ...）
               │
-              │  MCP protocol  (stdio or Streamable HTTP)
+              │  MCP 协议（stdio 或 Streamable HTTP）
               ▼
    ┌─────────────────────────────────────────────┐
    │  @acosmi/skill-agent-mcp · createServer()   │
-   │  ├─ 11 MCP tools registered                │
-   │  └─ Internal dispatch by skill_mode        │
+   │  ├─ 注册 11 个 MCP 工具                      │
+   │  └─ 内部按 skill_mode 分发                   │
    └─────────────────────────────────────────────┘
               │
-              ├─→ prompt mode → return SKILL body verbatim
+              ├─→ prompt 模式 → 原样返回 SKILL body
               │
-              ├─→ tool mode  → ComposedSubsystem.executeTool
-              │                 → resolve {{var.path}} templates
-              │                 → call ToolCallbackRegistry.get(toolName)
+              ├─→ tool 模式  → ComposedSubsystem.executeTool
+              │                 → 解析 {{var.path}} 模板
+              │                 → 调用 ToolCallbackRegistry.get(toolName)
               │
-              └─→ agent mode → resolveSkillAgentCapabilities (monotone-decay)
+              └─→ agent 模式 → resolveSkillAgentCapabilities（单调衰减）
                               → DelegationContract.transitionStatus(active)
-                              → SpawnSubagent (host-supplied LLM loop)
+                              → SpawnSubagent（宿主提供 LLM loop）
                               → DelegationContract.transitionStatus(completed/failed)
 ```
 
-Full subsystem map + 7-dimension `CapabilityNode` shape +
-`DelegationContract` state machine in
-[ARCHITECTURE.md](./ARCHITECTURE.md).
+完整子系统图 + 7 维 `CapabilityNode` 形态 + `DelegationContract` 状态机
+见 [ARCHITECTURE.md](./ARCHITECTURE.md)。
 
 ---
 
-## Subsystem layout
+## 子系统结构
 
-| Module | Purpose |
-|--------|---------|
-| `@acosmi/skill-agent-mcp/capabilities` | `CapabilityTree`, 7-dim node types, `setTreeBuilder`, `defaultTree`. Copied from `@acosmi/agent` v1.0. |
-| `@acosmi/skill-agent-mcp/manage` | `executeManageTool` 13-action meta-tool. Copied from v1.0. |
-| `@acosmi/skill-agent-mcp/llm` | `LLMClient` interface + Anthropic / OpenAI / Ollama reference adapters. |
-| `@acosmi/skill-agent-mcp/skill` | `SkillAgentConfig` (extended with 7 fields v1.0 lacks) + multi-source SKILL.md aggregator + validation. |
-| `@acosmi/skill-agent-mcp/dispatch` | server-side `prompt` / `tool` / `agent` dispatcher + `DelegationContract` + `resolveSkillAgentCapabilities`. |
-| `@acosmi/skill-agent-mcp/codegen` | SKILL → composed-tool compiler + executor with `{{var.path}}` template engine. |
-| `@acosmi/skill-agent-mcp/tools` | `skill_suggest` / `skill_generate` / `skill_manage` / `skill_activate`. |
-| `@acosmi/skill-agent-mcp/mcp` | `createServer` factory + stdio / Streamable HTTP transports. |
-
----
-
-## Documentation
-
-- [`docs/SKILL-TEMPLATE.md`](./docs/SKILL-TEMPLATE.md) — complete SKILL.md grammar (488 lines).
-- [`templates/`](./templates) — five short skeletons (one per mode + intent).
-- [`examples/`](./examples) — three demo SKILLs + reference callback impls + Claude Desktop config.
-- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — subsystem boundaries + data flow.
-- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — dev setup + commit style.
-- [`CHANGELOG.md`](./CHANGELOG.md) — version history.
+| 模块 | 作用 |
+|------|------|
+| `@acosmi/skill-agent-mcp/capabilities` | `CapabilityTree`、7 维节点类型、`setTreeBuilder`、`defaultTree`。来自 `@acosmi/agent` v1.0 的逐字复制。 |
+| `@acosmi/skill-agent-mcp/manage` | 13-action `executeManageTool` 元工具（来自 v1.0）。 |
+| `@acosmi/skill-agent-mcp/llm` | `LLMClient` 接口 + Anthropic / OpenAI / Ollama 三个参考适配器。 |
+| `@acosmi/skill-agent-mcp/skill` | 扩展版 `SkillAgentConfig`（含 7 个 v1.0 缺失的字段）+ 多源 SKILL.md 聚合 + 校验。 |
+| `@acosmi/skill-agent-mcp/dispatch` | `prompt` / `tool` / `agent` 三模式服务端分发器 + `DelegationContract` + 权限单调衰减。 |
+| `@acosmi/skill-agent-mcp/codegen` | SKILL → 组合工具的编译器 + 含 `{{var.path}}` 模板引擎的执行器。 |
+| `@acosmi/skill-agent-mcp/tools` | `skill_suggest` / `skill_generate` / `skill_manage` / `skill_activate` 自然语言 SKILL 工具集。 |
+| `@acosmi/skill-agent-mcp/mcp` | `createServer` 工厂 + stdio / Streamable HTTP transport。 |
 
 ---
 
-## FAQ
+## 文档
 
-### Why not put all this in `@acosmi/agent`?
-
-`@acosmi/agent` v1.0 is a "capability library" with zero protocol
-assumptions. Forcing the MCP SDK + zod onto every consumer would be a
-regression. Keeping the MCP wrapping here lets v1.0 stay
-protocol-agnostic.
-
-### Does this work outside Claude / Anthropic?
-
-Yes. The framework is provider-agnostic — `LLMClient` ships Anthropic /
-OpenAI / Ollama reference adapters and any MCP-compatible client
-(Cursor, Continue.dev, custom hosts) can connect via stdio or HTTP.
-
-### Why is `private: true` set?
-
-Local-only for the v1.0 cycle. Removing `private` + registering an npm
-token is the only step required before publishing.
-
-### How do I write my first SKILL?
-
-1. Pick a starting template from [`templates/`](./templates) — or
-   ask the running server via `skill_suggest`.
-2. Adapt the frontmatter (`tree_id`, `summary`, `skill_mode`, fields
-   for your chosen mode).
-3. Save under `<skillsDir>/<tree_id>/SKILL.md`.
-4. Validate via the `skill_parse` MCP tool with `validate=true`.
-
-### Can I add my own MCP tools alongside the built-in 11?
-
-Yes — `createServer()` returns the underlying `McpServer` instance;
-call `.registerTool()` on it directly.
-
-### How is permission enforced for sub-agents?
-
-`resolveSkillAgentCapabilities()` enforces **monotone-decay**: the
-sub-agent's tool set is always a subset of the parent's. The agent's
-`agent_config.allow` list is intersected with the parent's tool set
-before being added — a sub-agent cannot gain a tool the parent lacks,
-even by declaring `allow: [forbidden_tool]`.
-
-### What happens if a tool-mode SKILL step fails?
-
-Per-step `on_error` decides: `abort` (default) returns immediately;
-`skip` records the error and continues to the next step; `retry`
-re-attempts up to 2 extra times before giving up.
+- [`docs/SKILL-TEMPLATE.md`](./docs/SKILL-TEMPLATE.md) — SKILL.md 完整字段语法（488 行规范）。
+- [`templates/`](./templates) — 五份精简骨架（按 `skill_mode` + 意图划分）。
+- [`examples/`](./examples) — 三个 demo SKILL + 参考回调实现 + Claude Desktop 配置示例。
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — 子系统边界 + 数据流。
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — 开发环境 + 提交规范。
+- [`CHANGELOG.md`](./CHANGELOG.md) — 版本历史。
 
 ---
 
-## Roadmap
+## 常见问题（FAQ）
 
-| Milestone | Status | Description |
-|-----------|--------|-------------|
-| **v1.0** — initial release | ✅ shipped | 22 commits, 11 MCP tools, 136-test suite, full TS surface. |
-| **v1.1** — disk-walking SkillResolver | ⏳ planned | Replace the demo `staticSkillResolver` with a built-in implementation that walks `--skills-dir` recursively. |
-| **v1.2** — mcp / e2e test coverage | ⏳ planned | Add `tests/mcp/` and `tests/e2e/` against a mock McpServer + spawned process round-trips. |
-| **v1.3** — npm publish | ⏳ planned | Drop `private: true`, generate `dist/` via `tsc`, register npm token. |
-| **v2.0** — workspace-dep on `@acosmi/agent` | ⏳ planned | Replace duplicated `capabilities/` + `manage/` + `llm/` with a single peer dep once `@acosmi/agent` is on npm. |
+### 为什么不把这些都放进 `@acosmi/agent`？
+
+`@acosmi/agent` v1.0 是不假设任何协议的"能力库"。把 MCP SDK + zod 强加
+给所有 v1.0 消费者会是退化。把 MCP 封装放在本包里，可以让 v1.0 保持
+协议中立。
+
+### 这能在 Claude / Anthropic 之外用吗？
+
+可以。框架完全 provider-agnostic — `LLMClient` 自带 Anthropic / OpenAI /
+Ollama 三个参考适配器，且任何 MCP 兼容客户端（Cursor、Continue.dev、
+自建宿主）都可通过 stdio 或 HTTP 接入。
+
+### 为什么 `private: true`？
+
+v1.0 周期保持 local-only。删除 `private` + 注册 npm token 是 publish 前
+唯一剩下的步骤。
+
+### 怎么写第一个 SKILL？
+
+1. 从 [`templates/`](./templates) 选一个起点 — 或对运行中的服务器调
+   `skill_suggest`。
+2. 改动 frontmatter（`tree_id`、`summary`、`skill_mode`、对应模式所需字段）。
+3. 保存到 `<skillsDir>/<tree_id>/SKILL.md`。
+4. 用 `skill_parse` MCP 工具加 `validate=true` 校验。
+
+### 能不能在内置 11 个 MCP 工具旁边加自己的工具？
+
+可以 — `createServer()` 返回底层 `McpServer` 实例；直接在它上面调
+`.registerTool()` 添加即可。
+
+### 子智能体的权限是怎么强制的？
+
+`resolveSkillAgentCapabilities()` 强制实施**单调衰减**：子智能体的
+工具集永远是父集的子集。`agent_config.allow` 列表会先与父工具集求交集
+再加入 — 即便声明 `allow: [forbidden_tool]`，子智能体也不会获得这个
+工具。
+
+### tool-mode SKILL 某一步失败会怎么样？
+
+由每步的 `on_error` 决定：`abort`（默认）立即返回；`skip` 记录错误并
+继续下一步；`retry` 多重试 2 次后再放弃。
 
 ---
 
-## Acknowledgements
+## 路线图
 
-- [`@acosmi/agent`](https://github.com/acosmi/agent) — the v1.0
-  capability library this package wraps.
+| 里程碑 | 状态 | 说明 |
+|--------|------|------|
+| **v1.0** — 首个发布 | ✅ 已发布 | 22 commits、11 MCP 工具、136 测试套件、完整 TS surface。 |
+| **v1.1** — 内置磁盘扫描的 SkillResolver | ⏳ 计划中 | 替代 demo 的 `staticSkillResolver`，递归扫描 `--skills-dir`。 |
+| **v1.2** — mcp / e2e 测试覆盖度 | ⏳ 计划中 | 加 `tests/mcp/` 和 `tests/e2e/`，覆盖 mock McpServer + 子进程往返。 |
+| **v1.3** — npm publish | ⏳ 计划中 | 删除 `private: true`、用 `tsc` 生成 `dist/`、注册 npm token。 |
+| **v2.0** — workspace 依赖 `@acosmi/agent` | ⏳ 计划中 | 等 `@acosmi/agent` 上 npm 后，把复制的 `capabilities/` + `manage/` + `llm/` 替换为单一 peer dep。 |
+
+---
+
+## 致谢
+
+- [`@acosmi/agent`](https://github.com/acosmi/agent) — 本包包装的 v1.0
+  能力库。
 - [`@modelcontextprotocol/sdk`](https://github.com/modelcontextprotocol/typescript-sdk)
-  — the MCP TypeScript SDK we plug into.
-- The crabclaw project (private) — original Go implementation that this
-  package translates into TypeScript.
+  — 我们集成的 MCP TypeScript SDK。
+- crabclaw 项目（私有）— 本包翻译来源的原始 Go 实现。
 
 ---
 
-## License
+## 许可证
 
-Apache 2.0 — see [LICENSE](./LICENSE).
+Apache 2.0 — 详见 [LICENSE](./LICENSE)。

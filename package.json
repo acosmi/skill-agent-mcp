@@ -12,7 +12,11 @@
   "bugs": {
     "url": "https://github.com/acosmi/skill-agent-mcp/issues"
   },
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "provenance": false
+  },
   "type": "module",
   "main": "./dist/index.js",
   "module": "./src/index.ts",
@@ -23,39 +27,48 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
       "import": "./dist/index.js"
     },
     "./capabilities": {
-      "types": "./src/capabilities/index.ts",
-      "import": "./src/capabilities/index.ts"
+      "types": "./dist/capabilities/index.d.ts",
+      "bun": "./src/capabilities/index.ts",
+      "import": "./dist/capabilities/index.js"
     },
     "./codegen": {
-      "types": "./src/codegen/index.ts",
-      "import": "./src/codegen/index.ts"
+      "types": "./dist/codegen/index.d.ts",
+      "bun": "./src/codegen/index.ts",
+      "import": "./dist/codegen/index.js"
     },
     "./dispatch": {
-      "types": "./src/dispatch/index.ts",
-      "import": "./src/dispatch/index.ts"
+      "types": "./dist/dispatch/index.d.ts",
+      "bun": "./src/dispatch/index.ts",
+      "import": "./dist/dispatch/index.js"
     },
     "./llm": {
-      "types": "./src/llm/index.ts",
-      "import": "./src/llm/index.ts"
+      "types": "./dist/llm/index.d.ts",
+      "bun": "./src/llm/index.ts",
+      "import": "./dist/llm/index.js"
     },
     "./manage": {
-      "types": "./src/manage/index.ts",
-      "import": "./src/manage/index.ts"
+      "types": "./dist/manage/index.d.ts",
+      "bun": "./src/manage/index.ts",
+      "import": "./dist/manage/index.js"
     },
     "./mcp": {
-      "types": "./src/mcp/index.ts",
-      "import": "./src/mcp/index.ts"
+      "types": "./dist/mcp/index.d.ts",
+      "bun": "./src/mcp/index.ts",
+      "import": "./dist/mcp/index.js"
     },
     "./skill": {
-      "types": "./src/skill/index.ts",
-      "import": "./src/skill/index.ts"
+      "types": "./dist/skill/index.d.ts",
+      "bun": "./src/skill/index.ts",
+      "import": "./dist/skill/index.js"
     },
     "./tools": {
-      "types": "./src/tools/index.ts",
-      "import": "./src/tools/index.ts"
+      "types": "./dist/tools/index.d.ts",
+      "bun": "./src/tools/index.ts",
+      "import": "./dist/tools/index.js"
     }
   },
   "files": [
@@ -70,7 +83,9 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "echo 'TODO: tsc --project tsconfig.build.json (lands in commit #22)' && exit 1",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "bun run clean && bun run typecheck && bun test && bun run build",
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit",
     "start": "bun bin/acosmi-skill-agent-mcp"
