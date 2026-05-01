@@ -1,10 +1,10 @@
 {
   "mcpServers": {
     "acosmi-skill-agent": {
-      "command": "bun",
+      "command": "npx",
       "args": [
-        "run",
-        "/absolute/path/to/acosmi-skill-agent-mcp/bin/acosmi-skill-agent-mcp",
+        "-y",
+        "@acosmi/skill-agent-mcp",
         "--transport",
         "stdio",
         "--skills-dir",

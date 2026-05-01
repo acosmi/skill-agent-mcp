@@ -409,7 +409,7 @@
 - [x] commit 12：P2-6 反向索引 — commit 88d7614
 - [x] commit 13：P0-1 顶层 re-export + 测试 — commit 689c7e4
 - [x] commit 14：P1-1 contract.timeoutMs + 测试 — commit ca63078
-- [ ] commit 15：P1-2 注入 contract + 测试更新
+- [x] commit 15：P1-2 注入 contract + 测试更新 — commit f455e80
 - [ ] commit 16：P0-3 双 bin
 - [ ] commit 17：P0-2 HTTP listener + express dep + 测试
 - [ ] commit 18：docs 复核纠错 + 双兼容架构反映

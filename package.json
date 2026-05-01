@@ -22,7 +22,8 @@
   "module": "./src/index.ts",
   "types": "./dist/index.d.ts",
   "bin": {
-    "acosmi-skill-agent-mcp": "./bin/acosmi-skill-agent-mcp"
+    "acosmi-skill-agent-mcp": "./bin/acosmi-skill-agent-mcp",
+    "acosmi-skill-agent-mcp-bun": "./bin/acosmi-skill-agent-mcp-bun"
   },
   "exports": {
     ".": {
@@ -88,7 +89,8 @@
     "prepublishOnly": "bun run clean && bun run typecheck && bun test && bun run build",
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit",
-    "start": "bun bin/acosmi-skill-agent-mcp"
+    "start": "bun src/cli/main.ts",
+    "start:built": "node bin/acosmi-skill-agent-mcp"
   },
   "engines": {
     "bun": ">=1.3.0",
