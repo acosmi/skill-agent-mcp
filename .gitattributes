@@ -1,0 +1,22 @@
+# Force LF line endings for all text files so checkouts stay consistent
+# across Windows / macOS / Linux. v1.0 (acosmi-agent) skipped this file
+# and inherits the host autocrlf setting; we deliberately diverge so that
+# shebang-bearing scripts under bin/ keep working when cloned on a
+# non-Windows host.
+* text=auto eol=lf
+
+# Windows-only batch / command files keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Shebang-bearing scripts must stay LF regardless of host
+bin/* text eol=lf
+
+# Common binary types (declared explicitly for future assets)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

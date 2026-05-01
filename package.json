@@ -1,0 +1,65 @@
+{
+  "name": "@acosmi/skill-agent-mcp",
+  "version": "1.0.0",
+  "description": "MCP server exposing skill-driven agent capabilities — SKILL.md as the unified fusion layer for tools, prompt fragments, and sub-agents.",
+  "license": "Apache-2.0",
+  "author": "fushihua <fgfncc@gmail.com>",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "acosmi-skill-agent-mcp": "./bin/acosmi-skill-agent-mcp"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "bin/",
+    "templates/",
+    "examples/",
+    "docs/",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "echo 'TODO: tsc --project tsconfig.build.json (lands in commit #22)' && exit 1",
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit",
+    "start": "bun bin/acosmi-skill-agent-mcp"
+  },
+  "engines": {
+    "bun": ">=1.3.0",
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "agent",
+    "skill",
+    "skill-driven",
+    "capability-tree",
+    "anthropic",
+    "claude",
+    "ai-tools",
+    "typescript"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "yaml": "^2.8.3",
+    "zod": "^3.25.0"
+  }
+}
