@@ -85,6 +85,34 @@ describe("buildSkillAgentSystemPrompt", () => {
     expect(prompt).toContain("Goal: be helpful");
     expect(prompt).toContain("You are kind.");
     expect(prompt).toContain("Always greet first.");
+    // Without contract arg, no Delegation Contract section
+    expect(prompt).not.toContain("Delegation Contract");
+  });
+
+  it("appends contract.formatForSystemPrompt() when contract is supplied (P1-2)", async () => {
+    const { DelegationContract } = await import(
+      "../../src/dispatch/delegation-contract.ts"
+    );
+    const contract = new DelegationContract({
+      taskBrief: "test task",
+      successCriteria: "",
+      scope: [],
+      constraints: { noNetwork: false, noSpawn: false, sandboxRequired: false },
+      issuedBy: "test-session",
+      sourceRef: { type: "skill", id: "demo" },
+      timeoutMs: 45_000,
+    });
+    const skill: ResolvedAgentSkill = {
+      skillName: "demo",
+      agentConfig: { roleTitle: "Helper" },
+      skillBody: "body",
+    };
+    const prompt = buildSkillAgentSystemPrompt(skill, contract);
+    expect(prompt).toContain("# Role: Helper");
+    expect(prompt).toContain("body");
+    expect(prompt).toContain("## Delegation Contract");
+    expect(prompt).toContain("test task");
+    expect(prompt).toContain("45000ms");
   });
 });
 

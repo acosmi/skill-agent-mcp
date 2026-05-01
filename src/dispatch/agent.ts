@@ -317,7 +317,7 @@ export async function executeSkillDrivenSpawn(
     return `[spawn_agent] Dispatch to ${JSON.stringify(input.skillName)} denied by parent contract`;
   }
 
-  const systemPrompt = buildSkillAgentSystemPrompt(skill);
+  const systemPrompt = buildSkillAgentSystemPrompt(skill, contract);
 
   context.logger?.info("spawn_agent: launching skill agent", {
     skillName: input.skillName,
@@ -442,14 +442,21 @@ function parentSourceId(parentContract: DelegationContract | undefined): string 
 
 /**
  * Compose the sub-agent's system prompt from the resolved SKILL:
- * Role / Goal / Backstory + SKILL.md body. SOP / review_gate are NOT
- * appended here — call `buildSOPPromptSection` and concatenate at the
- * call site if you want SOP injection too.
+ * Role / Goal / Backstory + SKILL.md body. Optionally appends the
+ * delegation contract (scope / constraints / timeout) so the sub-agent
+ * doesn't waste tokens re-discovering its own task contract. SOP /
+ * review_gate are NOT appended here — call `buildSOPPromptSection`
+ * and concatenate at the call site if you want SOP injection too.
  *
  * Translated from crabclaw buildSkillAgentSystemPrompt; field order
  * preserved so existing SKILL.md authors see the same prompt layout.
+ * (Crabclaw Go's spawn_blueprint_agent missed this contract injection;
+ * spawn_media_agent had it. The TS port restores parity.)
  */
-export function buildSkillAgentSystemPrompt(skill: ResolvedAgentSkill): string {
+export function buildSkillAgentSystemPrompt(
+  skill: ResolvedAgentSkill,
+  contract?: DelegationContract,
+): string {
   const cfg = skill.agentConfig;
   let prompt = `# Role: ${cfg.roleTitle}\n`;
   if (cfg.roleGoal) {
@@ -460,6 +467,9 @@ export function buildSkillAgentSystemPrompt(skill: ResolvedAgentSkill): string {
   }
   if (skill.skillBody) {
     prompt += `\n---\n\n${skill.skillBody}\n`;
+  }
+  if (contract) {
+    prompt += `\n---\n\n${contract.formatForSystemPrompt()}\n`;
   }
   return prompt;
 }
