@@ -1,0 +1,26 @@
+// Public surface for the codegen subsystem.
+//
+// Skill-to-Tool codegen takes SKILL.md `tool_schema.steps[]` and
+// compiles them into a callable composed-tool definition that the
+// executor (commit #13) can run. The store persists compiled tools
+// across MCP server restarts.
+
+export type {
+  CodegenError,
+  CodegenResult,
+  CompiledStep,
+  ComposedToolDef,
+  ComposedToolStoreData,
+  StepResult,
+} from "./types.ts";
+
+export { COMPOSED_TOOL_STORE_VERSION } from "./types.ts";
+
+export {
+  COMPOSED_TOOLS_FILENAME,
+  ComposedToolStore,
+  composedStorePath,
+  loadComposedToolStore,
+  type LoadStoreResult,
+  saveComposedToolStore,
+} from "./store.ts";
