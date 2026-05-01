@@ -20,6 +20,7 @@ import {
   generateFrontendConstants,
   generateFrontendJson,
   metadataToSkillNodeData,
+  nextPatchId,
   parseSkillFrontmatter,
   resolveCrabClawMetadata,
   resolveToolNameFromTreeId,
@@ -312,9 +313,8 @@ describe("default tree singleton", () => {
 
 // v1.0 ships example fixtures at examples/SKILL.md + examples/tree.json
 // that this package does not duplicate (our examples/ holds three demo
-// SKILLs under examples/skills/ instead). Skipped here; the new MCP-server
-// integration tests (commit #20 below) cover the same parser + manage tool
-// paths against the fresh fixtures.
+// SKILLs under examples/skills/ instead). Skipped here; covered indirectly
+// by the parser + manage tool tests above.
 describe.skip("examples integration", () => {
   it("parses the bundled examples/SKILL.md", async () => {
     const examplePath = path.resolve(import.meta.dir, "../../examples/SKILL.md");
@@ -338,5 +338,19 @@ describe.skip("examples integration", () => {
     const parsed = JSON.parse(out) as { success: boolean; data: { inventory: string } };
     expect(parsed.success).toBe(true);
     expect(parsed.data.inventory).toContain("static");
+  });
+});
+
+describe("patch id uniqueness (P2-2)", () => {
+  it("nextPatchId returns distinct values across rapid consecutive calls within same ms", () => {
+    // Pre-fix Date.now()*1e6 + random%1000 collided when called twice in
+    // the same ms (ms*1e6 lost the sub-ms variance, only random kept us
+    // safe — ~1/1000 collision rate on bursty creates). hrtime.bigint()
+    // gives true ns resolution; even without the random suffix two calls
+    // can't share the same hrtime tick on any modern CPU.
+    const ids = new Set<string>();
+    const N = 1000;
+    for (let i = 0; i < N; i++) ids.add(nextPatchId());
+    expect(ids.size).toBe(N);
   });
 });

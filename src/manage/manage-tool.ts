@@ -178,10 +178,12 @@ function nowIso(): string {
 }
 
 function nowNano(): number {
-  // Date.now() is ms; multiply for ns. performance.now() origin differs by
-  // platform. ms*1e6 is sufficient since createdAtNano just provides
-  // tie-break vs createdAt.
-  return Date.now() * 1_000_000;
+  // hrtime.bigint() is monotonic ns from process start; ample sub-ms
+  // resolution for tie-breaking patches created in the same Date.now() ms
+  // (the previous ms*1e6 was nanosecond-typed but millisecond-precision —
+  // two storePatch calls in the same ms collided).
+  // Number(bigint) loses precision above 2^53 ≈ 104 days uptime; acceptable.
+  return Number(process.hrtime.bigint());
 }
 
 // ── action: tree ──────────────────────────────────────────────────────

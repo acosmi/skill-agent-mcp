@@ -30,9 +30,10 @@ export function loadPatch(id: string): TreePatch | undefined {
   return patchStore.get(id);
 }
 
-/** Generate a unique patch ID. */
+/** Generate a unique patch ID. Combines hrtime.bigint() (monotonic ns from
+ *  process start) with a 3-digit random suffix to absorb sub-ns collisions. */
 export function nextPatchId(): string {
-  return `patch-${Date.now() * 1_000_000 + Math.floor(Math.random() * 1000)}`;
+  return `patch-${process.hrtime.bigint()}-${Math.floor(Math.random() * 1000)}`;
 }
 
 /** Test-only: clear the patch store. */

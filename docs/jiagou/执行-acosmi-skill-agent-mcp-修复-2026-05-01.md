@@ -404,7 +404,7 @@
 - [x] commit 7：P2-1 parse-extended 复用 base.frontmatter — commit 7b0e964
 - [x] commit 8：P2-3 isStoreData 防 array — commit 1690e67
 - [x] commit 9：P2-4 loop_over 非数组报错 — commit ff65940
-- [ ] commit 10：P2-5 retry/abort 格式统一
+- [x] commit 10：P2-5 retry/abort 格式统一 — commit f736d18
 - [ ] commit 11：P2-2 nowNano hrtime
 - [ ] commit 12：P2-6 反向索引
 - [ ] commit 13：P0-1 顶层 re-export + 测试

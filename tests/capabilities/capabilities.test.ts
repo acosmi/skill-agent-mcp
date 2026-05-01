@@ -1,7 +1,6 @@
-// Unit tests for the capabilities subsystem (commit 2 + 3 surface).
+// Unit tests for the capabilities subsystem.
 // Translated from crabclaw capability_tree_test.go's tests that don't
-// depend on generateTreeFromRegistry. Integration tests covering the
-// generated tree land in commit 13 once that builder exists.
+// depend on generateTreeFromRegistry.
 
 import { describe, expect, it } from "bun:test";
 import {
