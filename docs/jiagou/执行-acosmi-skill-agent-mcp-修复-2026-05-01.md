@@ -400,7 +400,7 @@
 - [x] commit 3：B-1 LLMRequest.model 必填 — commit 190cb8c
 - [x] commit 4：B-2 删 anthropic DEFAULT_MODEL — commit 7f90afe
 - [x] commit 5：B-3 删 openai DEFAULT_OPENAI_MODEL — commit a487d65
-- [ ] commit 6：P1-3 SSE 多 tool_use + 测试
+- [x] commit 6：P1-3 SSE 多 tool_use + 测试 — commit 52983a0
 - [ ] commit 7：P2-1 parse-extended 复用 base.frontmatter
 - [ ] commit 8：P2-3 isStoreData 防 array
 - [ ] commit 9：P2-4 loop_over 非数组报错

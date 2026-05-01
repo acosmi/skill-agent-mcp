@@ -5,15 +5,13 @@
 // sop / review_gate / stall_threshold_ms / max_retry / escalation_chain
 // / snapshot_rollback).
 //
-// We re-derive the raw frontmatter object from the source string (not
-// from `ParsedSkill.metadata`, which has already lost the nested data)
-// so the augmentation stays additive and never re-parses agent_config
-// fields the v1.0 parser already handled.
+// We use base.frontmatter (the raw YAML object preserved by
+// parseSkillFrontmatter on `ParsedSkill`) so the augmentation stays
+// additive and never re-parses agent_config fields the v1.0 parser
+// already handled. ParsedSkill.metadata is not enough — it has already
+// lost the nested data we need.
 
-import {
-  parseFrontmatter,
-  parseSkillFrontmatter,
-} from "../manage/skill-frontmatter.ts";
+import { parseSkillFrontmatter } from "../manage/skill-frontmatter.ts";
 import type {
   AgentCronTrigger,
   AgentEventTrigger,
@@ -48,8 +46,7 @@ export function parseExtendedSkillFrontmatter(
     return base as ExtendedParsedSkill;
   }
 
-  const raw = parseFrontmatter(source);
-  const acRaw = raw?.["agent_config"];
+  const acRaw = base.frontmatter["agent_config"];
   if (!acRaw || typeof acRaw !== "object") {
     return base as ExtendedParsedSkill;
   }
