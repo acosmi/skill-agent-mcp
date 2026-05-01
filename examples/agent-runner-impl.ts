@@ -39,8 +39,11 @@ export const stubSpawnSubagent: SpawnSubagent = async (
 
 /**
  * Sketch of a real LLM-backed SpawnSubagent. Wire your LLMClient
- * (e.g. AnthropicLLMClient from @acosmi/skill-agent-mcp/llm) and run
- * an inner loop until the model emits a structured ThoughtResult.
+ * (e.g. AnthropicLLMClient or OpenAILLMClient from
+ * @acosmi/skill-agent-mcp/llm — OpenAILLMClient also covers Ollama
+ * OpenAI mode, vLLM, DeepSeek, OpenRouter, LiteLLM, and any other
+ * OpenAI-compatible service via baseUrl override) and run an inner
+ * loop until the model emits a structured ThoughtResult.
  *
  * This signature stays stable — hosts can swap the inner body with
  * whatever LLM provider they prefer without touching the dispatcher.

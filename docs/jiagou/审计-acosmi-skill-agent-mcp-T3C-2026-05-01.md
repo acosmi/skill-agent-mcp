@@ -170,3 +170,65 @@ McpServer (createServer)
 - npm publish 仅差一步：删除 `package.json#private:true` + 注册 npm token（用户决策）
 
 **结论**：v1.0 release-ready（local-only 形态），audit pass。
+
+---
+
+## 复核纠错（2026-05-01 后追加）
+
+### 撤回原"audit pass"结论
+
+上述 13 项 audit 跑出 ✅ 后，**同日下午**做了一次更深的 T3 全链路独立复核
+（与原审计同一会话内重新跑，但读取代码本身而非依赖第一遍 audit 的产出），
+发现原审计**遗漏 11 项实质性缺陷**，其中 3 P0 / 3 P1 / 6 P2 / 1 P3 + 1
+架构纠正（去 LLM 硬编码）。
+
+原"audit pass"结论收回。复核详见
+`docs/jiagou/执行-acosmi-skill-agent-mcp-修复-2026-05-01.md`。
+
+### 原审计为何漏
+
+| 漏检项 | 原 audit 应当捕获的位置 | 实际为什么漏 |
+|---|---|---|
+| P0-1 顶层 `src/index.ts` 只有 `export {};` | audit 项 4 文档完整性 / audit 项 10 examples imports 8 子路径 | audit 检查"package.json#exports."."" 字段 = 8 子路径"和"deep-import 可用"，但**没**测过"flat import 顶层是否真有 export"——错过假设 deep-import 可达 ⊆ flat import 可达 |
+| P0-2 HTTP transport.start 是 SDK no-op | audit 项 1 主文件复检 | spot-check 看了 `createStreamableHttpTransport` 工厂，工厂语义对；但**没**测过端到端 listen → 客户端连接 |
+| P0-3 bin shebang 与 engines.node 不匹配 | audit 项 12 .gitattributes + bin 100755 | 验证了 mode bit 但**没**比对 shebang 与 engines 一致性 |
+| P1-1 contract.timeoutMs 不一致 | audit 项 1 主文件复检 / audit 项 9 dispatch 测试 | dispatch 测试覆盖了权限 monotone-decay 但**没**覆盖 timeoutMs 流通；spot-check 没注意到两个变量不同源 |
+| P1-2 sub-agent prompt 漏注入 contract | audit 项 8 7 extended fields 解析 | 关注的是 SKILL.md frontmatter 解析，没关注 prompt 拼装管线是否完整 |
+| P1-3 SSE 多 tool_use 解析 | audit 没专门列项检查 LLM adapter | LLM 模块在 v1.0 verbatim copy 范畴内，原审计假设"v1.0 已审过 = 现在也对"——但**v1.0 自身就有这个 bug**，verbatim copy 把 bug 也拷过来了 |
+| P2-1 ~ P2-6 6 项 P2 | audit 项 5 deliberate divergence | 关注的是"我**主动**改了什么"，没系统扫"v1.0 哪里其实是 bug 但我没动" |
+| P3-1 commit #N 占位 | audit 没列项 | 这是叙述性瑕疵，原 audit 13 项里没"对外可读性" axis |
+| 架构纠正 LLM 默认模型 | audit 项 4 文档完整性 | 文档里 README/ARCHITECTURE 列出 Anthropic/OpenAI/Ollama 是事实陈述 ✅，但**架构正确性**（默认模型 = framework 替用户拍板的反模式）不在 audit 范畴 |
+
+### 修复后状态
+
+| 维度 | T3-C 22 commits 完成时 | 复核 18 commits 完成后 |
+|---|---|---|
+| commits | 22 | 22 + 19（含 docs commit + 18 项修复） |
+| tests | 136 pass / 2 skip / 275 expect / 6 files | **171 pass** / 2 skip / 360 expect / **10 files** |
+| 顶层 import 可达 | ❌ undefined | ✅ 11 关键 export 全 truthy |
+| HTTP listener | ❌ no-op | ✅ POST/GET/DELETE /mcp 真监听 + sessionId map + close handler |
+| node 用户 CLI | ❌ shebang=bun 直挂 | ✅ node 默认 + bun 备选双 bin |
+| Anthropic SSE 多 tool_use | ❌ partial_json id="" 串数据 | ✅ index→id 路由 |
+| contract.timeoutMs | ❌ 与 spawn 用值漂移 | ✅ 同源 |
+| sub-agent contract 注入 | ❌ 漏（同步 Go 端 spawn_blueprint 遗漏） | ✅ 与 spawn_media 端 1:1 |
+| LLM 默认模型 | claude-sonnet-4-6 / gpt-4o 硬编码 | ✅ 100% 调用方传 |
+
+### 教训
+
+1. **"deep-import 可达" ≠ "flat import 可达"**：package.json#exports
+   字段是 8 个子路径都对了，但 "." 字段指向的 dist/index.js 实际编译
+   自只有 `export {};` 的源文件——audit 项 10 应该加一句"测顶层
+   re-export 真有内容"。
+2. **verbatim copy 不能跳过审计**：v1.0 的 LLM 模块复制过来时假设
+   "v1.0 已审过"，但 v1.0 自身就有 SSE 解析的 bug。下次复制别人模块
+   要全量重审，至少跑一遍单元测试覆盖度。
+3. **audit 项要包含端到端 smoke**：13 项 audit 全是静态检查（grep /
+   spot-check / 测试通过率），缺一项"端到端开 server + 发请求 +
+   收响应"。本次复核的 P0-2 就靠 transport-http.test.ts 端到端测
+   抓出来。
+4. **"audit pass" 结论务必谨慎**：下次发 "audit pass" 之前至少自问
+   "audit 项是否能覆盖 P0 类 critical（用户 install 后基础功能直接
+   挂掉）的所有路径"——本次 P0-1/2/3 三项都是 critical 但都不在原
+   13 项 audit 范畴。
+
+

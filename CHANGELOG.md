@@ -5,6 +5,92 @@ All notable changes to `@acosmi/skill-agent-mcp` are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+T3 全链路审计 (2026-05-01) 发现的 3 P0 + 3 P1 + 6 P2 + 1 P3 + 1 架构纠正
+（去 LLM 硬编码）— 18 项增量修复。详见
+`docs/jiagou/执行-acosmi-skill-agent-mcp-修复-2026-05-01.md`。
+
+### BREAKING CHANGES
+
+- **Removed `OllamaLLMClient` + `OllamaConfig`** (A-1+A-2). 迁移路径：
+  用 `OpenAILLMClient` + `baseUrl="http://localhost:11434/v1"` 即可对接
+  Ollama 的 OpenAI 兼容端点（Ollama 0.1.30+ 默认开启）。OpenAI 兼容
+  协议天然覆盖 vLLM / DeepSeek / OpenRouter / LiteLLM / Groq 等任何
+  兼容服务。
+- **`LLMRequest.model` 改必填** (B-1)。从 `model?: string` 改为
+  `model: string` — 调用方必须显式声明模型。框架不再替用户拍板。
+- **删除 framework constant `DEFAULT_MODEL` / `DEFAULT_OPENAI_MODEL`**
+  (B-2 + B-3)。`AnthropicConfig.defaultModel` 字段 + `OpenAIConfig.defaultModel`
+  字段一并移除。模型选择前推到调用方（成本 / 上下文窗口 / 工具能力
+  是业务决策不该藏在 const 里）。
+- **bin shebang 切到 node** + dist/ 路径 (P0-3)。原 bin/acosmi-skill-agent-mcp
+  是 `#!/usr/bin/env bun` + `import "../src/cli/main.ts"`，纯 node 用户
+  npm install 后无 bun → 直接挂掉。新版默认 node + dist/，bun 用户用
+  `acosmi-skill-agent-mcp-bun` 备选 bin。
+- **`buildSkillAgentSystemPrompt` 加可选 `contract` 参数** (P1-2)。向后
+  兼容（不传 contract 输出与原版一致），但调用方传 contract 时输出
+  会含 "## Delegation Contract" 段，sub-agent 收到的 prompt 内容会变。
+
+### Added
+
+- **`startStreamableHttpServer`** in `src/mcp/transport.ts` (P0-2). 真的
+  开 TCP 监听 + 维护 sessionId map + POST/GET/DELETE /mcp + 优雅关闭。
+  原 `--transport http` 路径 silently no-op（SDK 的 transport.start 是
+  no-op）。
+- **顶层 re-export** in `src/index.ts` (P0-1). 8 个子模块的 public API
+  从顶层一次到达；`import { CapabilityTree } from "@acosmi/skill-agent-mcp"`
+  现在真的能拿到值（之前是 undefined）。
+- **第二个 bin** `bin/acosmi-skill-agent-mcp-bun` (P0-3). 给 bun 用户的
+  zero-build 入口（直接跑 src/.ts）。
+- **express 依赖** ^4.21.2 + @types/express ^4.17.21（dev）— P0-2 HTTP
+  listener 必需。
+- **新测试 35 cases**：tests/index/ + tests/llm/ + tests/dispatch/agent-timeout +
+  tests/mcp/transport-http + tests/codegen/ 与 tests/manage/ 与
+  tests/capabilities/ 内追加。**Total: 171 pass / 2 skip / 0 fail / 360
+  expect() across 10 files**。
+
+### Fixed
+
+- **P0-1** 顶层 `src/index.ts` 真的 re-export（之前只有 `export {};`）。
+- **P0-2** HTTP transport listener 真的监听（之前 SDK no-op + 没 wrap）。
+- **P0-3** bin shebang 与 engines.node 不匹配 → node 用户 install 后挂。
+- **P1-1** `contract.timeoutMs` 与 spawn 用的 timeoutMs 一致（之前 contract
+  始终 60_000 默认，spawn 用 input 值，两数字漂移）。
+- **P1-2** sub-agent system prompt 注入 delegation contract（与 Go 端
+  spawn_media_agent.go:135 行为对齐；之前 spawn_blueprint_agent.go 漏修，
+  TS port 1:1 复制了遗漏）。
+- **P1-3** Anthropic SSE 多 tool_use 解析按 index→id 路由（之前
+  `content_block_delta` 给 `tool_use_input_delta.id` 填空字符串，多并发
+  tool_use 时 partial_json 串到一起）。
+- **P2-1** `parseExtendedSkillFrontmatter` 复用 `base.frontmatter` 避免
+  重复 YAML 解析。
+- **P2-2** `nowNano` + `nextPatchId` 用 `process.hrtime.bigint()` 真 ns
+  精度（之前 `Date.now()*1e6` 名为 ns 实为 ms 精度，同 ms 内 patch
+  createdAtNano 撞库）。
+- **P2-3** `isStoreData` type guard 拒掉 `tools` 字段是 array（array 在
+  JS 里 `typeof === "object"` 且不为 null，会通过原校验后被
+  `Object.entries` 误迭代）。
+- **P2-4** `loop_over` 引用非数组变量时报错而非静默吞（之前
+  `coerceLoopItems` 见非数组返回 `[]`，loop step 形同跳过但不报错）。
+- **P2-5** `on_error: retry` exhausted 错误格式与 abort 对齐（带
+  `step <i+1>/<total>`），上层定位故障容易。
+- **P2-6** `CapabilityTree.lookupByName` / `lookupByToolHint` 加反向
+  Map 索引 O(1)（之前 O(N) 遍历，SKILL 注入后 N 大时退化 O(N²)）。
+- **P3-1** 全仓清理 `commit #N` 路线图占位 36+11 处（占位对外发布后
+  无锚点反而令读者困惑）。
+
+### Architecture correction
+
+- 删除 LLM 模块对模型 ID 的硬编码（A-1+A-2 + B-1/2/3）。框架的契约边界
+  退到 "Anthropic API 协议" 与 "OpenAI 协议"，模型选择 100% 业务决策。
+- HTTP transport 的 listener 责任明确归框架（之前在 SDK 与 user 之间
+  灰色地带，user 不知道要自己 wrap）。
+- 顶层 public surface 落实（之前 deep-import only）。
+
+详细修复清单：见
+`docs/jiagou/执行-acosmi-skill-agent-mcp-修复-2026-05-01.md`。
+
 ## [1.0.0] - 2026-05-01
 
 Initial release. MCP server wrapping `@acosmi/agent` v1.0's capability

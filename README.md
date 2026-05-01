@@ -251,7 +251,7 @@ await server.connect(createStdioTransport());
 |------|------|
 | `@acosmi/skill-agent-mcp/capabilities` | `CapabilityTree`、7 维节点类型、`setTreeBuilder`、`defaultTree`。来自 `@acosmi/agent` v1.0 的逐字复制。 |
 | `@acosmi/skill-agent-mcp/manage` | 13-action `executeManageTool` 元工具（来自 v1.0）。 |
-| `@acosmi/skill-agent-mcp/llm` | `LLMClient` 接口 + Anthropic / OpenAI / Ollama 三个参考适配器。 |
+| `@acosmi/skill-agent-mcp/llm` | `LLMClient` 接口 + Anthropic / OpenAI 双兼容参考适配器（OpenAI 适配器通过 `baseUrl` 覆盖兼容 Ollama OpenAI mode / vLLM / DeepSeek / OpenRouter / LiteLLM / Groq 等）。 |
 | `@acosmi/skill-agent-mcp/skill` | 扩展版 `SkillAgentConfig`（含 7 个 v1.0 缺失的字段）+ 多源 SKILL.md 聚合 + 校验。 |
 | `@acosmi/skill-agent-mcp/dispatch` | `prompt` / `tool` / `agent` 三模式服务端分发器 + `DelegationContract` + 权限单调衰减。 |
 | `@acosmi/skill-agent-mcp/codegen` | SKILL → 组合工具的编译器 + 含 `{{var.path}}` 模板引擎的执行器。 |
@@ -281,8 +281,10 @@ await server.connect(createStdioTransport());
 
 ### 这能在 Claude / Anthropic 之外用吗？
 
-可以。框架完全 provider-agnostic — `LLMClient` 自带 Anthropic / OpenAI /
-Ollama 三个参考适配器，且任何 MCP 兼容客户端（🦀 **Crab Code CLI / Desktop**（首推）、
+可以。框架完全 provider-agnostic — `LLMClient` 自带 Anthropic + OpenAI
+双兼容参考适配器（OpenAI 适配器通过 `baseUrl` 覆盖即可接 Ollama OpenAI
+mode / vLLM / DeepSeek / OpenRouter / LiteLLM 等任何 OpenAI 兼容服务），
+且任何 MCP 兼容客户端（🦀 **Crab Code CLI / Desktop**（首推）、
 Claude Desktop / Code、Cursor、Continue.dev、自建宿主）都可通过 stdio 或 HTTP 接入。
 
 ### 为什么 `private: true`？

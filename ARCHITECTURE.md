@@ -67,9 +67,12 @@ to think about whether they're invoking a "prompt" or a "sub-agent".
 └──────────────────────────────────────────────────────────────┘
 ```
 
-`src/llm/` (LLMClient + Anthropic / OpenAI / Ollama adapters) is
+`src/llm/` (LLMClient + Anthropic / OpenAI reference adapters) is
 exposed as a sibling subsystem — the dispatcher itself never imports
-LLMClient directly; hosts that wire `spawnSubagent` typically do.
+LLMClient directly; hosts that wire `spawnSubagent` typically do. The
+OpenAI adapter doubles as a generic OpenAI-compatible client (Ollama
+OpenAI mode, vLLM, DeepSeek, OpenRouter, LiteLLM, Groq, …) via
+`baseUrl` override.
 
 ## Three SkillModes, one tool surface
 
@@ -119,8 +122,8 @@ host is responsible for SKILL library curation. `skill_generate` /
 
 - An LLM runtime / agent loop. Hosts wire their own via the
   `SpawnSubagent` callback. This decision keeps the framework
-  provider-agnostic and avoids forcing a specific Anthropic / OpenAI /
-  Ollama dependency on every consumer.
+  provider-agnostic and avoids forcing a specific Anthropic / OpenAI
+  dependency on every consumer.
 - A built-in tool registry. Hosts wire their own
   `InMemoryToolCallbackRegistry` (or a custom impl) registering the
   tools their SKILLs reference. The framework deliberately ships zero

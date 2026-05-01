@@ -273,7 +273,7 @@ Full subsystem map + 7-dimension `CapabilityNode` shape +
 |--------|---------|
 | `@acosmi/skill-agent-mcp/capabilities` | `CapabilityTree`, 7-dim node types, `setTreeBuilder`, `defaultTree`. Copied from `@acosmi/agent` v1.0. |
 | `@acosmi/skill-agent-mcp/manage` | `executeManageTool` 13-action meta-tool. Copied from v1.0. |
-| `@acosmi/skill-agent-mcp/llm` | `LLMClient` interface + Anthropic / OpenAI / Ollama reference adapters. |
+| `@acosmi/skill-agent-mcp/llm` | `LLMClient` interface + Anthropic + OpenAI reference adapters (the OpenAI adapter doubles as a generic OpenAI-compatible client via `baseUrl` — Ollama OpenAI mode, vLLM, DeepSeek, OpenRouter, LiteLLM, Groq). |
 | `@acosmi/skill-agent-mcp/skill` | `SkillAgentConfig` (extended with 7 fields v1.0 lacks) + multi-source SKILL.md aggregator + validation. |
 | `@acosmi/skill-agent-mcp/dispatch` | server-side `prompt` / `tool` / `agent` dispatcher + `DelegationContract` + `resolveSkillAgentCapabilities`. |
 | `@acosmi/skill-agent-mcp/codegen` | SKILL → composed-tool compiler + executor with `{{var.path}}` template engine. |
@@ -304,8 +304,10 @@ protocol-agnostic.
 
 ### Does this work outside Claude / Anthropic?
 
-Yes. The framework is provider-agnostic — `LLMClient` ships Anthropic /
-OpenAI / Ollama reference adapters and any MCP-compatible client
+Yes. The framework is provider-agnostic — `LLMClient` ships Anthropic +
+OpenAI reference adapters (the OpenAI adapter via `baseUrl` covers Ollama
+OpenAI mode, vLLM, DeepSeek, OpenRouter, LiteLLM, and any other
+OpenAI-compatible service), and any MCP-compatible client
 (🦀 **Crab Code CLI / Desktop** (recommended), Claude Desktop / Code,
 Cursor, Continue.dev, custom hosts) can connect via stdio or HTTP.
 

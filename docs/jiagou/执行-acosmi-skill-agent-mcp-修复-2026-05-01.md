@@ -411,8 +411,8 @@
 - [x] commit 14：P1-1 contract.timeoutMs + 测试 — commit ca63078
 - [x] commit 15：P1-2 注入 contract + 测试更新 — commit f455e80
 - [x] commit 16：P0-3 双 bin — commit dbdb33a
-- [ ] commit 17：P0-2 HTTP listener + express dep + 测试
-- [ ] commit 18：docs 复核纠错 + 双兼容架构反映
+- [x] commit 17：P0-2 HTTP listener + express dep + 测试 — commit eb69eea
+- [x] commit 18：docs 复核纠错 + 双兼容架构反映 — pending
 
 ---
 
