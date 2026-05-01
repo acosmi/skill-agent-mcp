@@ -18,8 +18,6 @@ import type {
 
 export interface AnthropicConfig {
   apiKey: string;
-  /** Default model to use if request.model is unset. */
-  defaultModel?: string;
   /** Override the API base URL (e.g. for proxies or LiteLLM). */
   baseUrl?: string;
   /** API version header — defaults to a recent stable version. */
@@ -30,7 +28,6 @@ export interface AnthropicConfig {
 
 const DEFAULT_BASE_URL = "https://api.anthropic.com/v1";
 const DEFAULT_API_VERSION = "2023-06-01";
-const DEFAULT_MODEL = "claude-sonnet-4-6";
 
 export class AnthropicLLMClient implements LLMClient {
   readonly providerId = "anthropic";
@@ -42,7 +39,6 @@ export class AnthropicLLMClient implements LLMClient {
     }
     this.config = {
       apiKey: config.apiKey,
-      defaultModel: config.defaultModel ?? DEFAULT_MODEL,
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
       apiVersion: config.apiVersion ?? DEFAULT_API_VERSION,
       fetch: config.fetch ?? fetch,
@@ -100,7 +96,7 @@ export class AnthropicLLMClient implements LLMClient {
 
   private buildBody(req: LLMRequest, stream: boolean): Record<string, unknown> {
     const body: Record<string, unknown> = {
-      model: req.model ?? this.config.defaultModel,
+      model: req.model,
       messages: req.messages.map((m) => ({
         role: m.role,
         content: m.content,
