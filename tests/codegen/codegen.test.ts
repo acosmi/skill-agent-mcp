@@ -301,6 +301,41 @@ describe("ComposedSubsystem.executeTool", () => {
     expect(result).toContain("Step 1: boom [error]");
     expect(result).toContain("Step 2: ok [done]");
   });
+
+  it("loop_over referencing a non-array variable aborts with descriptive error (P2-4)", async () => {
+    const store = new ComposedToolStore();
+    store.set({
+      name: "skill_loop_bad",
+      skillName: "loop_bad",
+      skillPath: "/p",
+      description: "",
+      inputSchema: {},
+      outputSchema: {},
+      steps: [
+        {
+          action: "iterate",
+          description: "",
+          tool: "echo",
+          inputMap: { text: "{{item}}" },
+          outputAs: "",
+          approval: "none",
+          onError: "abort",
+          loopOver: "{{ input.items }}",
+          toolNodeId: "node/echo",
+        },
+      ],
+      maxApproval: "none",
+      treeNodeId: "composed/skill_loop_bad",
+      compiledAt: "2026-01-01T00:00:00Z",
+      skillHash: "abc",
+    });
+    const exec: ExecuteToolFn = async () => "should not be called";
+    const result = await new ComposedSubsystem(store, exec).executeTool(
+      "skill_loop_bad",
+      JSON.stringify({ items: "this-is-a-string-not-an-array" }),
+    );
+    expect(result).toContain("loop_over expects array, got string");
+  });
 });
 
 describe("loadComposedToolStore — schema validation", () => {

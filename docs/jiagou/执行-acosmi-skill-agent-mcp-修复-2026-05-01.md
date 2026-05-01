@@ -402,7 +402,7 @@
 - [x] commit 5：B-3 删 openai DEFAULT_OPENAI_MODEL — commit a487d65
 - [x] commit 6：P1-3 SSE 多 tool_use + 测试 — commit 52983a0
 - [x] commit 7：P2-1 parse-extended 复用 base.frontmatter — commit 7b0e964
-- [ ] commit 8：P2-3 isStoreData 防 array
+- [x] commit 8：P2-3 isStoreData 防 array — commit 1690e67
 - [ ] commit 9：P2-4 loop_over 非数组报错
 - [ ] commit 10：P2-5 retry/abort 格式统一
 - [ ] commit 11：P2-2 nowNano hrtime

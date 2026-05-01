@@ -121,7 +121,17 @@ export class ComposedSubsystem {
       //    `{{item}}` is only valid inside the loop body).
       if (step.loopOver) {
         const items = resolveVar(step.loopOver, varMap);
-        const loopResults = await this.executeLoop(step, items, varMap, signal);
+        let loopResults: unknown[];
+        try {
+          loopResults = await this.executeLoop(step, items, varMap, signal);
+        } catch (err) {
+          const message = errMsg(err);
+          if (step.onError === "skip") {
+            results.push({ action: step.action, error: message });
+            continue;
+          }
+          return `[step ${i + 1}/${def.steps.length} ${step.action} ${message}]`;
+        }
         if (step.outputAs) {
           varMap[step.outputAs] = loopResults;
         }
@@ -384,7 +394,8 @@ export function formatComposedResult(
 
 function coerceLoopItems(items: unknown): unknown[] {
   if (Array.isArray(items)) return items;
-  return [];
+  const got = items === null ? "null" : typeof items;
+  throw new Error(`loop_over expects array, got ${got}`);
 }
 
 function countOccurrences(haystack: string, needle: string): number {
